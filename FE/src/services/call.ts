@@ -1,9 +1,6 @@
-// Vị trí: lib/api/call.ts (hoặc @/utils/api/call.ts)
-
 import { get, post, put } from "@/utils/request";
-import type { Call } from "@/types"; // Giả sử Call là interface đã được định nghĩa
+import type { Call } from "@/types"; 
 
-// Lấy token từ localStorage một cách an toàn
 const getToken = () => {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
@@ -18,7 +15,7 @@ const getAuthHeaders = () => {
   };
 };
 
-// Tạo cuộc gọi mới (ĐÃ SỬA để khớp với CreateCallDto của NestJS)
+
 export async function createCall(
   conversationId: number,
   callerId: number,
@@ -26,18 +23,16 @@ export async function createCall(
   callType: "video" | "voice"
 ): Promise<Call> {
   const body = {
-    conversation_id: String(conversationId), // DTO backend mong đợi string
-    caller_id: String(callerId), // DTO backend mong đợi string
-    receiver_id: String(receiverId), // DTO backend mong đợi string
+    conversation_id: conversationId,
+    caller_id: callerId,
+    receiver_id: receiverId,
     call_type: callType,
-    started_at: new Date().toISOString(), // ✅ BẮT BUỘC: Thêm started_at
-    status: "in-progress", // ✅ BẮT BUỘC: Dùng 'in-progress'
   };
-
   return await post<Call>("/calls", body, {
     headers: getAuthHeaders(),
   });
 }
+
 
 // Cập nhật trạng thái cuộc gọi (ĐÃ SỬA)
 export async function updateCallStatus(
