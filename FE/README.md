@@ -12,7 +12,8 @@ A modern social media application built with Next.js 14, TypeScript, and Tailwin
 - 🎯 **Touch Friendly**: Optimized for touch interactions
 
 ## Tech Stack
-
+- npm install emoji-picker-react
+(thu vien cai dac emoji)
 - **Framework**: Next.js 14
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
