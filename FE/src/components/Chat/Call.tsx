@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { io, Socket } from "socket.io-client";
 import { PhoneOff, Mic, MicOff, Video, VideoOff, Phone } from "lucide-react";
-import anhmacdinh from "../../image/anhmacdinh.jpg";
+import anhmacdinh from "../../../image/anhmacdinh.jpg"
 import { createCall, updateCallStatus } from "@/services/call"; // Giả sử bạn có dịch vụ call
 import type { Call } from "@/types"; // Import Call type
 import { console } from 'inspector';
