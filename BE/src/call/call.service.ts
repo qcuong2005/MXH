@@ -12,10 +12,16 @@ export class CallService {
     private callRepository: Repository<Call>,
   ) {}
 
-  async create(createCallDto: CreateCallDto): Promise<Call> {
-    const call = this.callRepository.create(createCallDto);
-    return this.callRepository.save(call);
-  }
+async create(createCallDto: CreateCallDto): Promise<Call> {
+  const callData = {
+   ...createCallDto,
+   status: 'ongoing', 
+   started_at: new Date(), 
+   ended_at: null, // <--- BẠN GÁN LÀ NULL
+  };
+  const call = this.callRepository.create(callData);
+  return this.callRepository.save(call); // <-- LỖI SẼ XẢY RA Ở ĐÂY
+ }
 
   async update(id: number, updateCallDto: UpdateCallDto): Promise<Call> {
     await this.callRepository.update(id, updateCallDto);

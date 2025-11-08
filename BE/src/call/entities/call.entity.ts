@@ -78,8 +78,8 @@ export class Call {
     description: 'Thời gian kết thúc cuộc gọi',
     example: '2023-12-01T10:30:00Z',
   })
-  @Column()
-  ended_at: Date;
+  @Column({ nullable: true }) // <--- THÊM { nullable: true }
+  ended_at: Date | null; // <--- THÊM | null
 
   /**
    * Trạng thái của cuộc gọi: ongoing, ended, missed
