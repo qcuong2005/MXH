@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: system-ui, sans-serif;
+  }
+
+  /* Mobile-specific styles */
+  @media (max-width: 1023px) {
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Smooth scrolling for mobile */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Prevent zoom on input focus */
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  }
+
+  /* Facebook-like mobile styles */
+  .mobile-bottom-nav {
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-post-card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-3 transition-all duration-200;
+  }
+
+  .mobile-post-card:hover {
+    @apply shadow-md;
+  }
+
+  /* Mobile touch targets */
+  @media (max-width: 1023px) {
+    .mobile-touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Better spacing for mobile */
+    .mobile-spacing {
+      @apply px-2 py-2;
+    }
+
+    /* Mobile-optimized text */
+    .mobile-text {
+      @apply text-sm leading-relaxed;
+    }
+
+    /* Mobile button styles */
+    .mobile-btn {
+      @apply py-3 px-4 rounded-xl font-medium text-base;
+    }
+
+    /* Mobile input styles */
+    .mobile-input {
+      @apply py-3 px-4 rounded-xl text-base;
+    }
+  }
+
+  /* Facebook-like animations */
+  .fb-fade-in {
+    animation: fbFadeIn 0.3s ease-out;
+  }
+
+  .fb-slide-up {
+    animation: fbSlideUp 0.3s ease-out;
+  }
+  /* File: globals.css (hoặc file CSS chính của bạn) 
+*/
+
+/* Định nghĩa animation "nháy" */
+@keyframes highlight {
+  from {
+    /* Bắt đầu với màu nền xanh nhạt (giống màu highlight) */
+    background-color: rgba(59, 130, 246, 0.3);
+  }
+  to {
+    /* Trở về màu nền trong suốt */
+    background-color: transparent;
+  }
+}
+/* File: globals.css (hoặc file CSS chính của bạn) */
+
+@keyframes custom-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.typing-dot {
+  /* Áp dụng animation 'custom-pulse' */
+  animation: custom-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Áp dụng animation cho class .highlight-message */
+.highlight-message {
+  /* Chạy animation 'highlight' trong 1.5 giây */
+  animation: highlight 1.5s ease-out;
+}
+
+  @keyframes fbFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fbSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Mobile-specific utilities */
+  .mobile-hidden {
+    @apply hidden lg:block;
+  }
+
+  .mobile-only {
+    @apply block lg:hidden;
+  }
+
+  /* Safe area for mobile devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Mobile scrollbar hiding */
+  .mobile-scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .mobile-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

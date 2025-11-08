@@ -1,0 +1,64 @@
+# ============ COMMON IGNORE ============
+node_modules/
+dist/
+.next/
+build/
+out/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Coverage / test
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary / Cache
+tmp/
+temp/
+.cache/
+
+# ============ BACKEND (NestJS) ============
+# Compiled output
+BE/dist/
+# Environment files
+BE/.env
+# Database files
+BE/*.db
+BE/*.sqlite*
+# TypeScript
+BE/*.tsbuildinfo
+
+# ============ FRONTEND (Next.js + Tailwind) ============
+# Build output
+FE/.next/
+FE/out/
+FE/build/
+# Env files
+FE/.env
+FE/.env.local
+FE/.env.*.local
+# TypeScript build info
+FE/*.tsbuildinfo
+FE/next-env.d.ts
