@@ -1,217 +1,194 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+// import { io, Socket } from "socket.io-client"; // <-- 1. KHÔNG CẦN TẠO SOCKET MỚI
+// <-- 2. IMPORT HOOK ĐỂ LẤY SOCKET
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import { Users, Search, UserPlus, Check, X, MoreVertical } from "lucide-react";
+import { Search } from "lucide-react";
+import {
+  getFriendsApi,
+  getPendingFriendRequestsApi,
+  getSentFriendRequestsApi,
+} from "@/services/friend";
+import { fetchAPI } from "@/lib/api";
+import AllFriends from "@/components/Friends/AllFriends";
+import FriendRequests from "@/components/Friends/FriendRequests";
+import SuggestedFriends from "@/components/Friends/SuggestedFriends";
+import anhmacdinh from "../../../image/anhmacdinh.jpg";
+import { useSocket } from "@/components/SocketContext";
+// const SOCKET_URL = "http://localhost:5000"; // <-- 3. KHÔNG CẦN NỮA
 
 export default function FriendsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
+  const [token, setToken] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
+  // 4. LẤY SOCKET TOÀN CỤC TỪ CONTEXT
+  const { socket } = useSocket();
+  // const [socket, setSocket] = useState<Socket | null>(null); // <-- XÓA STATE CŨ
+
+  const [friends, setFriends] = useState<any[]>([]);
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [suggestedFriends, setSuggestedFriends] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const filteredFriends = friends.filter((friend) =>
+    friend.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredRequests = friendRequests.filter((request) =>
+    request.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredSuggestions = suggestedFriends.filter((suggestion) =>
+    suggestion.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Hàm fetch data (đã đúng, giữ nguyên)
+  const fetchAllFriendsData = useCallback(
+    async (authToken: string, currentId?: number) => {
+      if (!authToken) return;
+      try {
+        const [friendsRes, pendingRes, sentRes, usersRes] = await Promise.all([
+          getFriendsApi(authToken),
+          getPendingFriendRequestsApi(authToken),
+          getSentFriendRequestsApi(authToken),
+          fetchAPI("/users", {
+            headers: { Authorization: `Bearer ${authToken}` },
+          }),
+        ]);
+
+        const friends = friendsRes || [];
+        const friendRequests = pendingRes || [];
+        const sentRequests = sentRes || [];
+        const rawUsers = usersRes || [];
+
+        setFriends(friends);
+        setFriendRequests(friendRequests);
+
+        const excludedIds = new Set<number>();
+        if (currentId) excludedIds.add(currentId);
+        friends.forEach((friend: any) => excludedIds.add(friend.id));
+        friendRequests.forEach((req: any) => excludedIds.add(req.id));
+        sentRequests.forEach((req: any) => excludedIds.add(req.id));
+
+        const filteredUsers = rawUsers.filter(
+          (u: any) => !excludedIds.has(u.id)
+        );
+
+        const mappedSuggestions = filteredUsers.map((u: any) => ({
+          id: u.id,
+          name: u.fullName ?? u.name ?? u.username ?? "Unknown User",
+          username: u.username ? `@${u.username}` : "",
+          avatar: u.avatar ? u.avatar : anhmacdinh.src,
+          mutualFriends: 0,
+          status: "offline",
+        }));
+
+        setSuggestedFriends(mappedSuggestions);
+      } catch (error) {
+        console.error("Failed to fetch friends data:", error);
+      }
+    },
+    []
+  );
+
+  const handleAcceptRequest = async (requesterId: number) => {
+    if (!token || !socket) return; // Luôn kiểm tra socket toàn cục
+    socket.emit("friends:accept", { requesterId: requesterId });
+    setFriendRequests((prev) =>
+      prev.filter((req: any) => req.id !== requesterId)
+    );
+  };
+
+  const handleRejectRequest = async (requesterId: number) => {
+    if (!token || !socket) return; // Luôn kiểm tra socket toàn cục
+    socket.emit("friends:reject", { requesterId: requesterId });
+    setFriendRequests((prev) =>
+      prev.filter((req: any) => req.id !== requesterId)
+    );
+  };
+
+  // useEffect (Auth) - (Đã đúng, giữ nguyên)
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    const storedToken = localStorage.getItem("token");
+    const storedUserId = localStorage.getItem("userId");
+
+    if (!storedToken || !storedUserId) {
+      console.error(
+        "Auth Effect: Token hoặc UserId không có. Đang chuyển hướng..."
+      );
+      router.push("/login");
+      return;
+    }
+
+    setToken(storedToken);
+
+    const uid = parseInt(storedUserId, 10);
+    if (!isNaN(uid)) {
+      setCurrentUserId(uid);
+    } else {
+      console.error("Auth Effect: UserId không phải là số.");
       router.push("/login");
     }
   }, [router]);
 
-  // Mock data for friends
-  const friends = [
-    {
-      id: 1,
-      name: "John Doe",
-      username: "@johndoe",
-      avatar: "/api/placeholder/60/60",
-      mutualFriends: 12,
-      status: "online",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      username: "@janesmith",
-      avatar: "/api/placeholder/60/60",
-      mutualFriends: 8,
-      status: "offline",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      username: "@mikej",
-      avatar: "/api/placeholder/60/60",
-      mutualFriends: 15,
-      status: "online",
-    },
-  ];
-
-  const friendRequests = [
-    {
-      id: 4,
-      name: "Sarah Wilson",
-      username: "@sarahw",
-      avatar: "/api/placeholder/60/60",
-      mutualFriends: 5,
-    },
-    {
-      id: 5,
-      name: "David Brown",
-      username: "@davidb",
-      avatar: "/api/placeholder/60/60",
-      mutualFriends: 3,
-    },
-  ];
-
-  const suggestedFriends = [
-    {
-      id: 6,
-      name: "Emily Davis",
-      username: "@emilyd",
-      avatar: "/api/placeholder/60/60",
-      mutualFriends: 7,
-    },
-    {
-      id: 7,
-      name: "Alex Taylor",
-      username: "@alext",
-      avatar: "/api/placeholder/60/60",
-      mutualFriends: 4,
-    },
-  ];
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case "requests":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Friend Requests
-            </h2>
-            {friendRequests.map((request) => (
-              <div
-                key={request.id}
-                className="bg-white rounded-lg p-4 border border-gray-200"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={request.avatar}
-                      alt={request.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {request.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {request.username}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {request.mutualFriends} mutual friends
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-
-      case "suggestions":
-        return (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Suggested Friends
-            </h2>
-            {suggestedFriends.map((friend) => (
-              <div
-                key={friend.id}
-                className="bg-white rounded-lg p-4 border border-gray-200"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={friend.avatar}
-                      alt={friend.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {friend.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">{friend.username}</p>
-                      <p className="text-xs text-gray-400">
-                        {friend.mutualFriends} mutual friends
-                      </p>
-                    </div>
-                  </div>
-                  <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2">
-                    <UserPlus className="w-4 h-4" />
-                    <span>Add Friend</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-
-      default:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">All Friends</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {friends.map((friend) => (
-                <div
-                  key={friend.id}
-                  className="bg-white rounded-lg p-4 border border-gray-200"
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div className="relative">
-                      <img
-                        src={friend.avatar}
-                        alt={friend.name}
-                        className="w-16 h-16 rounded-full object-cover"
-                      />
-                      <div
-                        className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                          friend.status === "online"
-                            ? "bg-green-500"
-                            : "bg-gray-400"
-                        }`}
-                      ></div>
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mt-2">
-                      {friend.name}
-                    </h3>
-                    <p className="text-sm text-gray-500">{friend.username}</p>
-                    <p className="text-xs text-gray-400">
-                      {friend.mutualFriends} mutual friends
-                    </p>
-                    <div className="flex space-x-2 mt-3">
-                      <button className="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
-                        Message
-                      </button>
-                      <button className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
-                        <MoreVertical className="w-4 h-4 text-gray-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+  // 5. XÓA BỎ HOÀN TOÀN 'useEffect' DÙNG ĐỂ TẠO SOCKET CŨ
+  
+  // 6. TẠO useEffect MỚI ĐỂ LẮNG NGHE SỰ KIỆN TỪ SOCKET TOÀN CỤC
+  useEffect(() => {
+    // Chỉ chạy khi socket toàn cục, token, và user ID đã sẵn sàng
+    if (!socket || !token || !currentUserId) {
+      return;
     }
-  };
 
+    // 1. Tải data lần đầu khi trang được load (và socket đã sẵn sàng)
+    fetchAllFriendsData(token, currentUserId);
+
+    // 2. Lắng nghe các sự kiện socket
+    const handleRequestReceived = (data: any) => {
+      console.log("FriendsPage: Socket event: friends:request:received", data);
+      fetchAllFriendsData(token, currentUserId);
+    };
+    const handleRequestAccepted = (data: any) => {
+      console.log("FriendsPage: Socket event: friends:accepted", data);
+      fetchAllFriendsData(token, currentUserId);
+    };
+    const handleRequestRejected = (data: any) => {
+      console.log("FriendsPage: Socket event: friends:rejected", data);
+      fetchAllFriendsData(token, currentUserId);
+    };
+    const handleFriendRemoved = (data: any) => {
+      console.log("FriendsPage: Socket event: friends:removed", data);
+      fetchAllFriendsData(token, currentUserId);
+    };
+    const handleSocketError = (error: any) => {
+      console.error("SERVER BÁO LỖI (Socket):", error.message);
+    };
+
+    socket.on("friends:request:received", handleRequestReceived);
+    socket.on("friends:accepted", handleRequestAccepted);
+    socket.on("friends:rejected", handleRequestRejected);
+    socket.on("friends:removed", handleFriendRemoved);
+    socket.on("friends:error", handleSocketError);
+
+    // Cleanup: Gỡ bỏ listener khi component unmount
+    // QUAN TRỌNG: Không ngắt kết nối socket ở đây
+    return () => {
+      socket.off("friends:request:received", handleRequestReceived);
+      socket.off("friends:accepted", handleRequestAccepted);
+      socket.off("friends:rejected", handleRequestRejected);
+      socket.off("friends:removed", handleFriendRemoved);
+      socket.off("friends:error", handleSocketError);
+    };
+  }, [socket, token, currentUserId, fetchAllFriendsData]); // Dependencies này đã đúng
+
+  // Return JSX (Giữ nguyên)
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -219,13 +196,12 @@ export default function FriendsPage() {
         <Header />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto p-4">
-            {/* Header */}
+            {/* ... (Toàn bộ UI của bạn được giữ nguyên) ... */}
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Friends</h1>
               <p className="text-gray-600">Connect with people you know</p>
             </div>
-
-            {/* Search Bar */}
+            
             <div className="mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -233,26 +209,19 @@ export default function FriendsPage() {
                   type="text"
                   placeholder="Search friends..."
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
                 />
               </div>
             </div>
-
-            {/* Tabs */}
+            
             <div className="mb-6">
               <div className="border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8">
                   {[
-                    { id: "all", label: "All Friends", count: friends.length },
-                    {
-                      id: "requests",
-                      label: "Requests",
-                      count: friendRequests.length,
-                    },
-                    {
-                      id: "suggestions",
-                      label: "Suggestions",
-                      count: suggestedFriends.length,
-                    },
+                    { id: "all", label: "All Friends", count: filteredFriends.length },
+                    { id: "requests", label: "Requests", count: filteredRequests.length },
+                    { id: "suggestions", label: "Suggestions", count: filteredSuggestions.length },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -269,9 +238,26 @@ export default function FriendsPage() {
                 </nav>
               </div>
             </div>
-
-            {/* Content */}
-            {renderContent()}
+            
+            {activeTab === "all" && <AllFriends friends={filteredFriends} />}
+            {activeTab === "requests" && (
+              <FriendRequests
+                friendRequests={filteredRequests}
+                handleAcceptRequest={handleAcceptRequest}
+                handleRejectRequest={handleRejectRequest}
+              />
+            )}
+            
+            {/* Sửa lại: Dùng 'socket' từ context, 'token' chỉ để kiểm tra */}
+            {activeTab === "suggestions" && socket && token && (
+              <SuggestedFriends
+                suggestedFriends={filteredSuggestions}
+                socket={socket} 
+              />
+            )}
+            {activeTab === "suggestions" && !socket && (
+              <p className="text-gray-500 text-center">Đang kết nối...</p>
+            )}
           </div>
         </main>
       </div>

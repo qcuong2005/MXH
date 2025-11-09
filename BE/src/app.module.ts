@@ -12,11 +12,12 @@ import { LikesModule } from './likes/likes.module';
 import { MessagesModule } from './messages/messages.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { CallModule } from './call/call.module';
+import { FriendsModule } from './friends/friends.module';
 
 
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule,],
+  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule,],
   providers: [
     {
       provide: APP_GUARD,
