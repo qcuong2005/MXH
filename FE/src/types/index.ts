@@ -80,3 +80,11 @@ export interface Call {
   ended_at: string;          // Thời gian kết thúc cuộc gọi (dưới dạng chuỗi ISO 8601)
   status: 'ongoing' | 'ended' | 'missed';  // Trạng thái cuộc gọi (đang gọi, đã kết thúc, bị bỏ lỡ)
 }
+export type FriendStatus = "pending" | "accepted" | "rejected" | "blocked";
+
+export interface Friend {
+  id: number;          // id record trong bảng friends
+  userId: number;      // user chủ sở hữu (người gửi request)
+  friendId: number;    // user bên kia
+  status: FriendStatus;
+}

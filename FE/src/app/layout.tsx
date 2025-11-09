@@ -1,3 +1,4 @@
+import { SocketProvider } from '@/components/SocketContext'
 import './globals.css'
 export const metadata = {
   title: 'Social Media',
@@ -12,7 +13,11 @@ export default function RootLayout({
   return (
   
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SocketProvider>
+        {children}
+        </SocketProvider>
+        </body>
     </html>
   )
 }
