@@ -18,18 +18,13 @@ import FriendRequests from "@/components/Friends/FriendRequests";
 import SuggestedFriends from "@/components/Friends/SuggestedFriends";
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import { useSocket } from "@/components/SocketContext";
-// const SOCKET_URL = "http://localhost:5000"; // <-- 3. KHÔNG CẦN NỮA
 
 export default function FriendsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
   const [token, setToken] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-
-  // 4. LẤY SOCKET TOÀN CỤC TỪ CONTEXT
   const { socket } = useSocket();
-  // const [socket, setSocket] = useState<Socket | null>(null); // <-- XÓA STATE CŨ
-
   const [friends, setFriends] = useState<any[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [suggestedFriends, setSuggestedFriends] = useState<any[]>([]);
@@ -137,10 +132,6 @@ export default function FriendsPage() {
       router.push("/login");
     }
   }, [router]);
-
-  // 5. XÓA BỎ HOÀN TOÀN 'useEffect' DÙNG ĐỂ TẠO SOCKET CŨ
-  
-  // 6. TẠO useEffect MỚI ĐỂ LẮNG NGHE SỰ KIỆN TỪ SOCKET TOÀN CỤC
   useEffect(() => {
     // Chỉ chạy khi socket toàn cục, token, và user ID đã sẵn sàng
     if (!socket || !token || !currentUserId) {

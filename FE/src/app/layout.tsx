@@ -12,7 +12,7 @@ export default function RootLayout({
 }) {
   return (
   
-    <html lang="en">
+    <html lang="vi">
       <body>
         <SocketProvider>
         {children}
