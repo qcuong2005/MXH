@@ -186,9 +186,7 @@ export default function MessagesList({
               để nút reply nằm bên trái bubble chat
             */}
             <div
-              className={`group flex items-center gap-2 ${
-                isMine ? "flex-row-reverse" : ""
-              }`}
+              className={`group flex items-center gap-2 ${isMine ? "flex-row-reverse" : ""}`}
             >
               <div
                 className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
@@ -259,4 +257,3 @@ export default function MessagesList({
     </div>
   );
 }
-
