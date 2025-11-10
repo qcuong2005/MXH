@@ -98,51 +98,46 @@ export default function ChatWindow({
   };
 
   // === PHẦN FIX LỖI REALTIME ===
-  useEffect(() => {
-    if (!socket) return;
-    const handleNew = (msg: any) => {
-      // Bỏ qua tin nhắn không thuộc cuộc trò chuyện này
-      if (msg.conversation_id !== conversationId) return;
-      setMessagesData((prevMessages: any[]) => {
-        const exists = prevMessages.some((m: any) => m.id === msg.id);
-        if (exists) return prevMessages; // Đã tồn tại (có thể là từ optimistic), bỏ qua
-        // --- BẮT ĐẦU LOGIC FIX ---
-        // Đây là logic bạn đã bỏ sót từ file MessagesPage.tsx cũ
-        let finalMessage = { ...msg };
-        const replyId = finalMessage.reply_to; // Backend trả về reply_to là ID
-        if (replyId) {
-          // Tìm tin nhắn gốc trong state hiện tại
-          let originalMessage: any = prevMessages.find(
-            (m) => m.id === Number(replyId)
-          );
-          if (originalMessage) {
-            finalMessage.reply_to = originalMessage; // Thay thế ID bằng Object
-          } else {
-            // Nếu không tìm thấy, backend của bạn nên trả về object đầy đủ
-            // Tạm thời log lỗi và để reply_to là ID
-            console.warn(
-              `Không tìm thấy tin nhắn gốc (ID: ${replyId}) trong state.`
-            );
-          }
+ useEffect(() => {
+  if (!socket) return;
+
+  const handleNew = (msg: any) => {
+    if (msg.conversation_id !== conversationId) return;
+
+    setMessagesData((prevMessages: any[]) => {
+      const exists = prevMessages.some((m: any) => m.id === msg.id);
+      if (exists) return prevMessages;
+
+      let finalMessage = { ...msg };
+      const replyId = finalMessage.reply_to;
+
+      // Nếu có reply_to là ID, tìm kiếm và thay thế bằng đối tượng Message đầy đủ
+      if (replyId) {
+        let originalMessage = prevMessages.find((m: any) => m.id === Number(replyId));
+        if (originalMessage) {
+          finalMessage.reply_to = originalMessage;
+        } else {
+          console.warn(`Không tìm thấy tin nhắn gốc (ID: ${replyId}) trong state.`);
         }
-        // --- KẾT THÚC LOGIC FIX ---
-        // Logic thay thế tin nhắn optimistic
-        if (finalMessage.sender_id === currentUser.id) {
-          return prevMessages.map((m: any) =>
-            typeof m.id === "number" &&
-            m.id > 1000000 &&
-            m.content === finalMessage.content
-              ? finalMessage // Thay thế bằng tin nhắn thật (đã xử lý reply)
-              : m
-          );
-        }
-        // Tin nhắn mới từ người khác (đã xử lý reply)
-        return [...prevMessages, finalMessage];
-      });
-    };
-    socket.on("newMessage", handleNew);
-    return () => socket.off("newMessage", handleNew);
-  }, [socket, conversationId, currentUser?.id, setMessagesData]); // Thêm setMessagesData
+      }
+
+      // Logic thêm tin nhắn vào state
+      if (finalMessage.sender_id === currentUser.id) {
+        return prevMessages.map((m: any) =>
+          typeof m.id === "number" && m.id > 1000000 && m.content === finalMessage.content
+            ? finalMessage
+            : m
+        );
+      }
+
+      return [...prevMessages, finalMessage];
+    });
+  };
+
+  socket.on('newMessage', handleNew);
+  return () => socket.off('newMessage', handleNew);
+}, [socket, conversationId, currentUser?.id, setMessagesData]);
+ // Thêm setMessagesData
   // === HẾT PHẦN FIX ===
 
   // --- EMOJI ---
@@ -185,8 +180,8 @@ export default function ChatWindow({
   const handleAcceptCall = () => {
     if (!incomingCall || !socket) return;
     const params: ReceiverParams = {
-      receiver_name: incomingCall.caller_name || "Người gọi",
-      receiver_avatar: incomingCall.caller_avatar || anhmacdinh.src,
+      receiver_name: incomingCall.name || "Người gọi",
+      receiver_avatar: incomingCall.avatar || anhmacdinh.src,
       call_type: incomingCall.call_type,
       conversation_id: incomingCall.conversation_id,
       receiver_id: incomingCall.caller_id,

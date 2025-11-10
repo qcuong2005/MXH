@@ -656,6 +656,7 @@
 //   );
 // }
 "use client";
+
 import { useState, useEffect } from "react";
 import { useSocket } from "@/components/SocketContext";
 import Sidebar from "@/components/Sidebar";
@@ -729,6 +730,36 @@ export default function MessagesPage() {
     if (socket && currentUser?.id) socket.emit("joinUser", currentUser.id);
   }, [socket, currentUser?.id]);
 
+  const resolveReplies = (messages: any[]) => {
+  const messageMap = new Map(messages.map(m => [m.id, m])); // Map để tìm nhanh bằng ID
+  return messages.map(msg => {
+    let finalMsg = { ...msg };
+    const replyId = finalMsg.reply_to;
+    if (replyId && typeof replyId === 'number') { // Giả sử ID là number
+      const originalMessage = messageMap.get(replyId);
+      if (originalMessage) {
+        finalMsg.reply_to = originalMessage; // Thay ID bằng object
+      } else {
+        console.warn(`Không tìm thấy tin nhắn gốc (ID: ${replyId}) khi load.`);
+        // Optional: Giữ ID hoặc set null để tránh lỗi UI
+        finalMsg.reply_to = null;
+      }
+    }
+    return finalMsg;
+  });
+};
+useEffect(() => {
+  if (!selectedChat || !currentUser?.token) return;
+  const loadConversation = async () => {
+    const conv = await ensureConversation(currentUser.token, selectedChat.id);
+    setConversationId(conv.id);
+    const msgs = await getMessagesByConversation(currentUser.token, conv.id);
+    // ✅ Áp dụng resolve ngay đây
+    const resolvedMsgs = resolveReplies(msgs || []);
+    setMessagesData(resolvedMsgs);
+  };
+  loadConversation();
+}, [selectedChat, currentUser]);
   // ✅ Nghe sự kiện "cuộc gọi đến" ở bất kỳ đâu
   useEffect(() => {
     if (!socket || !currentUser?.id) return;
