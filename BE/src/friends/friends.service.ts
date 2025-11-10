@@ -198,7 +198,7 @@ async getSentFriendRequests(currentUserId: number) {
       id: u.id,
       name: u.fullName ?? u.name ?? u.username ?? 'Unknown User',
       username: u.username ? `@${u.username}` : '',
-      avatar: u.avatarUrl ?? u.avatar ?? '/api/placeholder/60/60',
+      avatar: u.avatarUrl ?? u.avatar,
       mutualFriends: 0, // Có thể thêm logic tính mutual friends nếu cần
     }));
   }
