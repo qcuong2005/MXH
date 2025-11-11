@@ -394,7 +394,6 @@ function CallPage({
         setTimeout(() => handleEndCall(false, "missed"), 1200);
       }
     })();
-
     return () => {
       mounted = false;
       destroyedRef.current = true;

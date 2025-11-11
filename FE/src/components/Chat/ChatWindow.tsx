@@ -24,6 +24,7 @@ export default function ChatWindow({
   conversationId,
   messagesData,
   setMessagesData,
+  onNewMessageUpdate, // Callback to update users list in parent
 }: any) {
   const { socket } = useSocket();
   const [messageInput, setMessageInput] = useState("");
@@ -48,7 +49,7 @@ export default function ChatWindow({
       receiver_id: selectedChat.id,
     });
   };
-
+console.log("incomingCall",incomingCall)
   useEffect(() => {
     if (!socket || !selectedChat) return;
     const handleTyping = (userId: number) => {
@@ -73,11 +74,13 @@ export default function ChatWindow({
       !conversationId
     )
       return;
+    const content = messageInput.trim(); // ✅ Lưu content trước khi clear
+    const timestamp = new Date().toISOString();
     const msgDto = {
       sender_id: currentUser.id,
       receiver_id: selectedChat.id,
       conversation_id: conversationId,
-      content: messageInput,
+      content: content,
       message_type: "text",
       reply_to: replyMessage ? replyMessage.id : null,
     };
@@ -86,58 +89,64 @@ export default function ChatWindow({
     const optimistic = {
       ...msgDto,
       id: Date.now(),
-      created_at: new Date().toISOString(),
+      created_at: timestamp,
       reply_to: replyMessage ? replyMessage : null,
       read: false,
     };
     setMessagesData((prev: any) => [...prev, optimistic]);
     socket.emit("sendMessage", msgDto); // Gửi DTO (với reply_to là ID)
+    // ✅ Gọi callback để update sidebar (prefix "Bạn:", đẩy lên đầu) ngay khi gửi
+    if (onNewMessageUpdate) {
+      onNewMessageUpdate(selectedChat.id, content, timestamp, true);
+    }
     setMessageInput("");
     setReplyMessage(null);
     setShowEmojiPicker(false);
   };
 
   // === PHẦN FIX LỖI REALTIME ===
- useEffect(() => {
-  if (!socket) return;
-
-  const handleNew = (msg: any) => {
-    if (msg.conversation_id !== conversationId) return;
-
-    setMessagesData((prevMessages: any[]) => {
-      const exists = prevMessages.some((m: any) => m.id === msg.id);
-      if (exists) return prevMessages;
-
-      let finalMessage = { ...msg };
-      const replyId = finalMessage.reply_to;
-
-      // Nếu có reply_to là ID, tìm kiếm và thay thế bằng đối tượng Message đầy đủ
-      if (replyId) {
-        let originalMessage = prevMessages.find((m: any) => m.id === Number(replyId));
-        if (originalMessage) {
-          finalMessage.reply_to = originalMessage;
-        } else {
-          console.warn(`Không tìm thấy tin nhắn gốc (ID: ${replyId}) trong state.`);
+  useEffect(() => {
+    if (!socket) return;
+    const handleNew = (msg: any) => {
+      if (msg.conversation_id !== conversationId) return;
+      setMessagesData((prevMessages: any[]) => {
+        const exists = prevMessages.some((m: any) => m.id === msg.id);
+        if (exists) return prevMessages;
+        let finalMessage = { ...msg };
+        const replyId = finalMessage.reply_to;
+        // Nếu có reply_to là ID, tìm kiếm và thay thế bằng đối tượng Message đầy đủ
+        if (replyId) {
+          let originalMessage = prevMessages.find(
+            (m: any) => m.id === Number(replyId)
+          );
+          if (originalMessage) {
+            finalMessage.reply_to = originalMessage;
+          } else {
+            console.warn(
+              `Không tìm thấy tin nhắn gốc (ID: ${replyId}) trong state.`
+            );
+          }
         }
-      }
-
-      // Logic thêm tin nhắn vào state
-      if (finalMessage.sender_id === currentUser.id) {
-        return prevMessages.map((m: any) =>
-          typeof m.id === "number" && m.id > 1000000 && m.content === finalMessage.content
-            ? finalMessage
-            : m
-        );
-      }
-
-      return [...prevMessages, finalMessage];
-    });
-  };
-
-  socket.on('newMessage', handleNew);
-  return () => socket.off('newMessage', handleNew);
-}, [socket, conversationId, currentUser?.id, setMessagesData]);
- // Thêm setMessagesData
+        // Logic thêm tin nhắn vào state
+        if (finalMessage.sender_id === currentUser.id) {
+          return prevMessages.map((m: any) =>
+            typeof m.id === "number" &&
+            m.id > 1000000 &&
+            m.content === finalMessage.content
+              ? finalMessage
+              : m
+          );
+        }
+        // Khi nhận từ người khác: Cập nhật users (sort lên đầu, không prefix)
+        if (onNewMessageUpdate && selectedChat) {
+          onNewMessageUpdate(selectedChat.id, finalMessage.content, finalMessage.created_at, false);
+        }
+        return [...prevMessages, finalMessage];
+      });
+    };
+    socket.on("newMessage", handleNew);
+    return () => socket.off("newMessage", handleNew);
+  }, [socket, conversationId, currentUser?.id, setMessagesData, onNewMessageUpdate, selectedChat?.id]);
   // === HẾT PHẦN FIX ===
 
   // --- EMOJI ---
@@ -157,12 +166,14 @@ export default function ChatWindow({
 
   // --- CALL HANDLERS ---
   const handleStartCall = (callType: "voice" | "video") => {
+    console.log("selectedChat",selectedChat)
     if (!selectedChat || !currentUser || !conversationId || !socket) {
       console.error("Không thể bắt đầu cuộc gọi: Thiếu thông tin.");
       return;
     }
     const params: ReceiverParams = {
-      receiver_name: selectedChat.fullName || selectedChat.fullName || "Người dùng",
+      receiver_name:
+      selectedChat.fullName || selectedChat.fullName || "Người dùng",
       receiver_avatar: selectedChat.avatar || anhmacdinh.src,
       call_type: callType,
       conversation_id: conversationId!,
@@ -176,24 +187,25 @@ export default function ChatWindow({
   const handleIncomingCall = (callData: Call) => {
     setIncomingCall(callData);
   };
-  const handleAcceptCall = () => {
-    if (!incomingCall || !socket) return;
-    const params: ReceiverParams = {
-      receiver_name: incomingCall.name || "Người gọi",
-      receiver_avatar: incomingCall.avatar || anhmacdinh.src,
-      call_type: incomingCall.call_type,
-      conversation_id: incomingCall.conversation_id,
-      receiver_id: incomingCall.caller_id,
-    };
-    setActiveCallParams(params);
-    setIsMakingCall(false);
-    setActiveCallDetails(incomingCall);
-    socket.emit("callAccepted", {
-      call_id: incomingCall.id,
-      receiver_id: incomingCall.caller_id,
-    });
-    setIncomingCall(null);
-  };
+
+  // const handleAcceptCall = () => {
+  //   if (!incomingCall || !socket) return;
+  //   const params: ReceiverParams = {
+  //     receiver_name: incomingCall.caller_name || "Người gọi",
+  //     receiver_avatar: incomingCall.caller_avatar || anhmacdinh.src,
+  //     call_type: incomingCall.call_type,
+  //     conversation_id: incomingCall.conversation_id,
+  //     receiver_id: incomingCall.caller_id,
+  //   };
+  //   setActiveCallParams(params);
+  //   setIsMakingCall(false);
+  //   setActiveCallDetails(incomingCall);
+  //   socket.emit("callAccepted", {
+  //     call_id: incomingCall.id,
+  //     receiver_id: incomingCall.caller_id,
+  //   });
+  //   setIncomingCall(null);
+  // };
 
   const handleRejectCall = () => {
     if (!incomingCall || !socket) return;
@@ -226,6 +238,7 @@ export default function ChatWindow({
         Chọn người để bắt đầu trò chuyện
       </div>
     );
+
   return (
     <div className="flex-1 flex flex-col bg-gray-50 h-full min-h-0">
       {/* Header */}
@@ -280,7 +293,6 @@ export default function ChatWindow({
           </button>
         </div>
       </div>
-
       {/* MESSAGES AREA */}
       <div className="flex-1 overflow-hidden min-h-0 bg-white">
         <MessagesList
@@ -290,7 +302,6 @@ export default function ChatWindow({
           setReplyMessage={setReplyMessage}
         />
       </div>
-
       {/* INPUT */}
       <div className="p-3 border-t border-gray-200 bg-white flex-shrink-0 relative shadow-sm">
         {replyMessage && (
@@ -347,15 +358,15 @@ export default function ChatWindow({
           </div>
         )}
       </div>
-
       {/* --- CALL MODALS --- */}
-      {incomingCall && (
+      {/* {incomingCall && (
         <IncomingCallModal
           callData={incomingCall}
           onAccept={handleAcceptCall}
           onReject={handleRejectCall}
+          
         />
-      )}
+      )} */}
       {activeCallParams && currentUser && (
         <div className="absolute inset-0 z-40 bg-black/50">
           <CallPage
@@ -369,4 +380,4 @@ export default function ChatWindow({
       )}
     </div>
   );
-}
+} 
