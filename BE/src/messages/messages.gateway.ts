@@ -18,65 +18,113 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   @WebSocketServer()
   server: Server;
 
-  private users = new Map<number, string>(); // userId -> socketId
+  // SỬA: Đổi Map thành <number, string[]>
+  private users = new Map<number, string[]>(); // userId -> mảng socketId
 
   constructor(private readonly messagesService: MessagesService) {}
 
   handleConnection(client: Socket) {
+    // Gán userId tạm là null khi mới kết nối
+    client.data.userId = null; 
     console.log(`🔌 Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    // Xóa user nếu disconnect
-    for (const [userId, socketId] of this.users.entries()) {
-      if (socketId === client.id) {
+    const userId = client.data.userId; // Lấy userId đã lưu
+
+    // Nếu user này chưa bao giờ "join" (chưa có userId) thì không làm gì
+    if (!userId) {
+      console.log(`❌ Client (chưa join) disconnected: ${client.id}`);
+      return;
+    }
+
+    // Lấy mảng socket của user
+    const userSockets = this.users.get(userId);
+
+    if (userSockets) {
+      // SỬA: Lọc bỏ socket vừa disconnect khỏi mảng
+      const updatedSockets = userSockets.filter((id) => id !== client.id);
+
+      if (updatedSockets.length > 0) {
+        // 1. Nếu user vẫn còn kết nối ở nơi khác -> Cập nhật lại mảng
+        this.users.set(userId, updatedSockets);
+      } else {
+        // 2. Nếu đây là kết nối cuối cùng -> Xóa user khỏi Map và báo offline
         this.users.delete(userId);
-        this.server.emit('userOffline', userId); // 🔴 báo user offline
-        console.log(`⚫ User ${userId} offline`);
+        this.server.emit('userStatus', { userId: userId, status: 'offline' });
+        console.log(`⚫ User ${userId} offline (kết nối cuối cùng đã đóng)`);
       }
     }
-    console.log(`❌ Client disconnected: ${client.id}`);
+    console.log(`❌ Client disconnected: ${client.id} (của User ${userId})`);
   }
 
-  // ✅ Khi user join vào
+  // SỬA: Logic join
   @SubscribeMessage('joinUser')
   handleJoinUser(client: Socket, userId: number) {
-    this.users.set(userId, client.id);
-    this.server.emit('userOnline', userId); // 🟢 báo user online
-    console.log(`👤 User ${userId} joined with socket ${client.id}`);
+    // Lưu userId vào client.data để dùng trong handleDisconnect
+    client.data.userId = userId; 
+    
+    const currentSockets = this.users.get(userId) || [];
+    
+    // Nếu đây là kết nối ĐẦU TIÊN của user này -> Báo online
+    if (currentSockets.length === 0) {
+      // Dùng client.broadcast để gửi cho *những người khác*
+      client.broadcast.emit('userStatus', { userId: userId, status: 'online' });
+    }
+
+    // Thêm socket mới vào mảng và cập nhật Map
+    currentSockets.push(client.id);
+    this.users.set(userId, currentSockets);
+    
+    console.log(`👤 User ${userId} joined (socket ${client.id}). Tổng kết nối: ${currentSockets.length}`);
   }
 
   // ✅ Khi gửi tin nhắn
   @SubscribeMessage('sendMessage')
   async handleSendMessage(client: Socket, payload: any) {
-    // Lưu tin nhắn mới vào cơ sở dữ liệu
     const message = await this.messagesService.saveMessage(payload);
 
-    // Gửi cho chính người gửi
-    client.emit('newMessage', message);
-
-    // Gửi cho người nhận nếu đang online
-    const receiverSocket = this.users.get(payload.receiver_id);
-    if (receiverSocket) {
-      this.server.to(receiverSocket).emit('newMessage', message);
+    // Gửi cho chính người gửi (tất cả các tab của người gửi)
+    const senderSockets = this.users.get(payload.sender_id);
+    if (senderSockets) {
+      senderSockets.forEach(socketId => {
+        this.server.to(socketId).emit('newMessage', message);
+      })
+    }
+    
+    // Gửi cho người nhận (tất cả các tab của người nhận)
+    const receiverSockets = this.users.get(payload.receiver_id);
+    if (receiverSockets) {
+      receiverSockets.forEach(socketId => {
+        this.server.to(socketId).emit('newMessage', message);
+      });
     }
   }
 
   // ✅ Khi user đang nhập
   @SubscribeMessage('typing')
   handleTyping(client: Socket, payload: { sender_id: number; receiver_id: number }) {
-    const receiverSocket = this.users.get(payload.receiver_id);
-    if (receiverSocket) {
-      this.server.to(receiverSocket).emit('userTyping', payload.sender_id);
+    // SỬA: Gửi đến tất cả các socket của người nhận
+    const receiverSockets = this.users.get(payload.receiver_id);
+    if (receiverSockets) {
+      receiverSockets.forEach(socketId => {
+        // Gửi đến socket, TRỪ socket của tab đang gõ
+        if (socketId !== client.id) { 
+          this.server.to(socketId).emit('userTyping', payload.sender_id);
+        }
+      });
     }
   }
 
   // ✅ Khi user đã đọc tin nhắn
   @SubscribeMessage('messageRead')
   handleMessageRead(client: Socket, payload: { reader_id: number; sender_id: number }) {
-    const senderSocket = this.users.get(payload.sender_id);
-    if (senderSocket) {
-      this.server.to(senderSocket).emit('messageRead', payload.reader_id);
+     // SỬA: Gửi đến tất cả các socket của người gửi
+    const senderSockets = this.users.get(payload.sender_id);
+    if (senderSockets) {
+      senderSockets.forEach(socketId => {
+        this.server.to(socketId).emit('messageRead', payload.reader_id);
+      });
     }
   }
 }
