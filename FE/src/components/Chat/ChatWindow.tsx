@@ -162,7 +162,7 @@ export default function ChatWindow({
       return;
     }
     const params: ReceiverParams = {
-      receiver_name: selectedChat.name || selectedChat.username || "Người dùng",
+      receiver_name: selectedChat.fullName || selectedChat.fullName || "Người dùng",
       receiver_avatar: selectedChat.avatar || anhmacdinh.src,
       call_type: callType,
       conversation_id: conversationId!,
@@ -176,7 +176,6 @@ export default function ChatWindow({
   const handleIncomingCall = (callData: Call) => {
     setIncomingCall(callData);
   };
-
   const handleAcceptCall = () => {
     if (!incomingCall || !socket) return;
     const params: ReceiverParams = {
@@ -227,7 +226,6 @@ export default function ChatWindow({
         Chọn người để bắt đầu trò chuyện
       </div>
     );
-
   return (
     <div className="flex-1 flex flex-col bg-gray-50 h-full min-h-0">
       {/* Header */}

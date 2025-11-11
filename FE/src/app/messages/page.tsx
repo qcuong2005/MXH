@@ -712,6 +712,28 @@ export default function MessagesPage() {
       setUsers(filtered);
     });
   }, [currentUser]);
+useEffect(() => {
+  if (!socket || !currentUser?.id) return;
+
+  const handleStatusUpdate = (data: { userId: number; status: "online" | "offline" }) => {
+    console.log("📡 Status update:", data); // Debug
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.id === data.userId ? { ...user, status: data.status } : user
+      )
+    );
+
+    if (selectedChat?.id === data.userId) {
+      setSelectedChat((prev: any) => ({ ...prev, status: data.status }));
+    }
+  };
+
+  socket.on("userStatus", handleStatusUpdate);
+
+  return () => {
+    socket.off("userStatus", handleStatusUpdate);
+  };
+}, [socket, currentUser?.id, selectedChat?.id]);
 
   // ✅ Load tin nhắn khi chọn user
   useEffect(() => {
@@ -729,6 +751,7 @@ export default function MessagesPage() {
   useEffect(() => {
     if (socket && currentUser?.id) socket.emit("joinUser", currentUser.id);
   }, [socket, currentUser?.id]);
+
 
   const resolveReplies = (messages: any[]) => {
   const messageMap = new Map(messages.map(m => [m.id, m])); // Map để tìm nhanh bằng ID
@@ -754,7 +777,6 @@ useEffect(() => {
     const conv = await ensureConversation(currentUser.token, selectedChat.id);
     setConversationId(conv.id);
     const msgs = await getMessagesByConversation(currentUser.token, conv.id);
-    // ✅ Áp dụng resolve ngay đây
     const resolvedMsgs = resolveReplies(msgs || []);
     setMessagesData(resolvedMsgs);
   };
