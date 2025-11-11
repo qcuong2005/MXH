@@ -79,7 +79,7 @@ export class Call {
     example: '2023-12-01T10:30:00Z',
   })
   @Column({ nullable: true }) // <--- THÊM { nullable: true }
-  ended_at: Date | null; // <--- THÊM | null
+ ended_at: Date | null; // <--- THÊM | null
 
   /**
    * Trạng thái của cuộc gọi: ongoing, ended, missed

@@ -24,38 +24,54 @@ export default function UserSidebar({ users, selectedChat, setSelectedChat }: an
         {filteredUsers.length === 0 ? (
           <p className="text-gray-500 text-center mt-4">Không có người dùng nào khác</p>
         ) : (
-          filteredUsers.map((u: any) => (
-            <div
-              key={u.id}
-              onClick={() => setSelectedChat(u)}
-              className={`p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${
-                selectedChat?.id === u.id ? "bg-blue-50 border-r-2 border-blue-500" : ""
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Image
-                    src={u.avatar || anhmacdinh.src}
-                    alt={u.name || "user"}
-                    width={48}
-                    height={48}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div
-                    className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                      u.status === "online" ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 truncate">
-                    {u.name || u.username || "Người dùng"}
-                  </h3>
-                  <p className="text-sm text-gray-600 truncate mt-1">{u.lastMessage}</p>
+          filteredUsers.map((u: any) => {
+            const isUnread = u.unreadCount > 0;
+            const displayMessage = u.lastMessage?.trim() || "Bắt đầu trò chuyện";
+            return (
+              <div
+                key={u.id}
+                onClick={() => setSelectedChat(u)}
+                className={`p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${
+                  selectedChat?.id === u.id ? "bg-blue-50 border-r-2 border-blue-500" : ""
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="relative">
+                    <Image
+                      src={u.avatar || anhmacdinh.src}
+                      alt={u.name || "user"}
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div
+                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                        u.status === "online" ? "bg-green-500" : "bg-gray-400"
+                      }`}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0 flex items-center">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {u.name || u.username || "Người dùng"}
+                      </h3>
+                      <p
+                        className={`text-sm mt-1 line-clamp-2 break-words ${
+                          isUnread ? "text-black font-semibold" : "text-gray-500"
+                        }`}
+                        title={u.lastMessage || ""}
+                      >
+                        {displayMessage}
+                      </p>
+                    </div>
+                    {isUnread && (
+                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

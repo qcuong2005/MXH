@@ -4,6 +4,7 @@ import { Phone, PhoneOff } from "lucide-react";
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
 
 interface IncomingCallModalProps {
+  selectedChat:any,
   callData: any; // Dữ liệu cuộc gọi từ socket (event "outgoingCall")
   onAccept: () => void;
   onReject: () => void;
@@ -12,11 +13,13 @@ interface IncomingCallModalProps {
 export default function IncomingCallModal({
   callData,
   onAccept,
+  selectedChat,
   onReject,
 }: IncomingCallModalProps) {
   if (!callData) return null;
 
   const callType = callData.call_type === "video" ? "Video" : "Thoại";
+console.log("selectedChat",selectedChat)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
