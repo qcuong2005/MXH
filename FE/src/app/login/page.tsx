@@ -32,7 +32,7 @@ export default function LoginPage() {
     // ✅ Lưu token JWT vào localStorage
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('userId', data.user.id)
-
+    localStorage.setItem('username',data.user.username)
     // ✅ Chuyển hướng về trang chính
     router.push('/')
   } catch (err) {

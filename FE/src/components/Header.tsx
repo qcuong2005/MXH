@@ -58,9 +58,9 @@ export default function Header() {
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xs">S</span>
+              <span className="text-white font-bold text-xs">V</span>
             </div>
-            <h1 className="text-lg font-bold text-gray-900">SocialApp</h1>
+            <h1 className="text-lg font-bold text-gray-900">VTC Media</h1>
           </div>
 
           {/* Mobile Actions */}
