@@ -363,7 +363,7 @@ function CallPage({
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const peerRef = useRef<Peer.Instance | null>(null);
+  const peerRef = useRef<Peer | null>(null);
 
   const pendingSignalsRef = useRef<any[]>([]);
   const destroyedRef = useRef(false);

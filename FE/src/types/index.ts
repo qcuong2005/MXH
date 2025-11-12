@@ -1,6 +1,7 @@
 export interface User {
   id: string
   name: string
+  fullName?: string
   username: string
   email: string
   avatar?: string
@@ -21,6 +22,7 @@ export interface Post {
   user?: {
     username?: string;
     avatar?: string;
+    fullName?: string;
   };
   createdAt: string;
 }
@@ -35,6 +37,7 @@ export interface Comment {
     id: number;
     username: string;
     avatar?: string;
+    fullName?: string;
   };
   post: {
     id: number;
@@ -58,6 +61,7 @@ export interface like {
   userId: number
   postId: number
   reaction?: string 
+  message?: string
 }
 // Đây là interface phản ánh entity Message trong database
 export interface Message {
@@ -78,7 +82,7 @@ export interface Call {
   call_type: 'video' | 'voice';  // Loại cuộc gọi (video call hoặc voice call)
   started_at: string;        // Thời gian bắt đầu cuộc gọi (dưới dạng chuỗi ISO 8601)
   ended_at: string;          // Thời gian kết thúc cuộc gọi (dưới dạng chuỗi ISO 8601)
-  status: 'ongoing' | 'ended' | 'missed';  // Trạng thái cuộc gọi (đang gọi, đã kết thúc, bị bỏ lỡ)
+  status: 'ongoing' | 'ended' | 'missed' | 'declined';  // Trạng thái cuộc gọi (đang gọi, đã kết thúc, bị bỏ lỡ)
 }
 export type FriendStatus = "pending" | "accepted" | "rejected" | "blocked";
 

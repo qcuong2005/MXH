@@ -60,15 +60,15 @@ export default function MessagesList({
   };
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-4 bg-gray-50 scroll-smooth">
+    <div className="h-full overflow-y-auto px-6 py-4 bg-gray-50 dark:bg-gray-900 scroll-smooth">
       {messages.map((msg: Message) => {
         const isMine = msg.sender_id === currentUserId;
         const msgKey = msg.id.toString();
         return (
           <div
             key={msgKey}
-            ref={(el) => (messageRefs.current[msgKey] = el)} // ✅ Ref cho mỗi message để scroll
-            className={`flex mb-3 ${isMine ? "justify-end" : "justify-start"} transition-all duration-200`} // Smooth transition cho highlight
+            ref={(el) => { messageRefs.current[msgKey] = el; }}
+            className={`flex mb-3 ${isMine ? "justify-end" : "justify-start"} transition-all duration-200`}
           >
             <div
               className={`group flex items-center gap-2 ${isMine ? "flex-row-reverse" : ""}`}
@@ -77,7 +77,7 @@ export default function MessagesList({
                 className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
                   isMine
                     ? "bg-blue-500 text-white rounded-br-none"
-                    : "bg-white text-gray-900 rounded-bl-none"
+                    : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-none"
                 }`}
               >
                 {/* === PHẦN HIỂN THỊ TIN NHẮN ĐƯỢC TRẢ LỜI ===
@@ -85,12 +85,12 @@ export default function MessagesList({
                 */}
                 {msg.reply_to && typeof msg.reply_to === "object" && (
                   <div
-                    className={`mb-2 p-2 rounded-lg border-l-4 cursor-pointer hover:bg-gray-100 transition-colors ${
+                    className={`mb-2 p-2 rounded-lg border-l-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
                       isMine
                         ? "border-blue-200 bg-black/20"
-                        : "border-gray-300 bg-black/10"
+                        : "border-gray-300 dark:border-gray-600 bg-black/10"
                     }`}
-                    onClick={() => scrollToAndHighlight(msg.reply_to!.id)} // ✅ Click scroll + highlight
+                    onClick={() => scrollToAndHighlight(msg.reply_to!.id)}
                   >
                     <p
                       className={`text-xs font-semibold ${
@@ -101,9 +101,9 @@ export default function MessagesList({
                     </p>
                     <p
                       className={`text-sm truncate ${
-                        isMine ? "text-white/90" : "text-gray-700"
+                        isMine ? "text-white/90" : "text-gray-700 dark:text-gray-300"
                       }`}
-                      title={msg.reply_to!.content} // Tooltip full
+                      title={msg.reply_to!.content}
                     >
                       {truncateText(msg.reply_to!.content, 5)} {/* ✅ >5 từ thì ... */}
                     </p>
@@ -114,7 +114,7 @@ export default function MessagesList({
                 {msg.created_at && (
                   <span
                     className={`block text-xs mt-1 ${
-                      isMine ? "text-blue-100" : "text-gray-400"
+                      isMine ? "text-blue-100" : "text-gray-400 dark:text-gray-500"
                     } text-right`}
                   >
                     {new Date(msg.created_at).toLocaleTimeString([], {
@@ -126,7 +126,7 @@ export default function MessagesList({
               </div>
               <button
                 onClick={() => setReplyMessage(msg)}
-                className="p-1 rounded-full text-gray-500 hover:bg-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-1 rounded-full text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <ReplyIcon size={16} />
               </button>

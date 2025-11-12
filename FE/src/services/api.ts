@@ -1,5 +1,5 @@
 import { del, get, post } from "@/utils/request";
-import type { like, Post, User } from "@/types";
+import type { like, Post, User, Comment as AppComment } from "@/types";
 
 
 // Tao bai viet
@@ -29,14 +29,14 @@ export async function createComment(
   postId: number,
   content: string,
   parent_Id?: number
-): Promise<Comment> {
+): Promise<AppComment> {
   const body = {
     post_id: Number(postId), // ✅ ép kiểu integer
     content: String(content), // ✅ ép kiểu string
     ...(parent_Id ? { parent_Id: Number(parent_Id) } : {}), // ✅ chỉ thêm khi có
   };
 
-  const result = await post<Comment>("/comments", body, {
+  const result = await post<AppComment>("/comments", body, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
@@ -49,8 +49,8 @@ export async function createComment(
 /**
  * 🔵 Lấy danh sách bình luận theo ID bài viết
  */
-export async function getCommentsByPost(postId: number): Promise<Comment[]> {
-  return await get<Comment[]>(`/comments/post/${postId}`);
+export async function getCommentsByPost(postId: number): Promise<AppComment[]> {
+  return await get<AppComment[]>(`/comments/post/${postId}`);
 
 }
 /**
@@ -125,7 +125,7 @@ export async function getLikeStatus(
   token: string,
   postId?: number,
   commentId?: number
-): Promise<{ liked: boolean }> {
+): Promise<{ liked: boolean; type?: string | null }> {
   let query = "";
   if (postId && commentId) {
     query = `?postId=${postId}&commentId=${commentId}`;
@@ -135,7 +135,7 @@ export async function getLikeStatus(
     query = `?commentId=${commentId}`;
   }
 
-  const result = await get<{ liked: boolean }>(`/likes/status${query}`, {
+  const result = await get<{ liked: boolean; type?: string | null }>(`/likes/status${query}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

@@ -31,7 +31,7 @@ export default function Profile() {
   const paramUserId = searchParams.get("userId") ? Number(searchParams.get("userId")) : undefined;
   console.log(paramUserId)
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />

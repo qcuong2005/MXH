@@ -37,7 +37,7 @@ export async function createCall(
 // Cập nhật trạng thái cuộc gọi (ĐÃ SỬA)
 export async function updateCallStatus(
   callId: number,
-  status: "ended" | "missed" // Chỉ cho phép cập nhật 2 trạng thái này
+  status: "ended" | "missed" | "declined"
 ): Promise<Call> {
   const body = {
     status,

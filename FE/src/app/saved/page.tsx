@@ -122,7 +122,7 @@ export default function SavedPage() {
   });
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
@@ -132,11 +132,11 @@ export default function SavedPage() {
             <div className="mb-6">
               <div className="flex items-center space-x-3 mb-2">
                 <Bookmark className="w-8 h-8 text-blue-500" />
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   Saved Posts
                 </h1>
               </div>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 Your collection of saved posts and articles
               </p>
             </div>
@@ -151,7 +151,7 @@ export default function SavedPage() {
                   placeholder="Search saved posts..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                 />
               </div>
 
@@ -164,7 +164,7 @@ export default function SavedPage() {
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                       activeFilter === category.id
                         ? "bg-blue-500 text-white"
-                        : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                        : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700"
                     }`}
                   >
                     {category.label} ({category.count})
@@ -178,10 +178,10 @@ export default function SavedPage() {
               {filteredPosts.length === 0 ? (
                 <div className="text-center py-12">
                   <Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2 dark:text-gray-100">
                     No saved posts found
                   </h3>
-                  <p className="text-gray-500">
+                  <p className="text-gray-500 dark:text-gray-400">
                     {searchQuery
                       ? "Try adjusting your search terms"
                       : "Start saving posts to see them here"}
@@ -191,10 +191,10 @@ export default function SavedPage() {
                 filteredPosts.map((post) => (
                   <div
                     key={post.id}
-                    className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                    className="bg-white rounded-lg border border-gray-200 overflow-hidden dark:bg-gray-800 dark:border-gray-700"
                   >
                     {/* Post Header */}
-                    <div className="p-4 border-b border-gray-200">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <img
@@ -203,20 +203,20 @@ export default function SavedPage() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                           <div>
-                            <h3 className="font-semibold text-gray-900">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                               {post.author}
                             </h3>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               Saved {post.savedAt}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full dark:bg-blue-900 dark:text-blue-200">
                             {post.category}
                           </span>
-                          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <MoreVertical className="w-4 h-4 text-gray-600" />
+                          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors dark:hover:bg-gray-800">
+                            <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                           </button>
                         </div>
                       </div>
@@ -224,10 +224,10 @@ export default function SavedPage() {
 
                     {/* Post Content */}
                     <div className="p-4">
-                      <h2 className="font-semibold text-gray-900 mb-2">
+                      <h2 className="font-semibold text-gray-900 mb-2 dark:text-gray-100">
                         {post.title}
                       </h2>
-                      <p className="text-gray-700 mb-4">{post.content}</p>
+                      <p className="text-gray-700 mb-4 dark:text-gray-300">{post.content}</p>
 
                       {post.image && (
                         <div className="mb-4">
@@ -242,15 +242,15 @@ export default function SavedPage() {
                       {/* Post Actions */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6">
-                          <button className="flex items-center space-x-2 text-gray-600 hover:text-red-500 transition-colors">
+                          <button className="flex items-center space-x-2 text-gray-600 hover:text-red-500 transition-colors dark:text-gray-300">
                             <Heart className="w-5 h-5" />
                             <span className="text-sm">{post.likes}</span>
                           </button>
-                          <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors">
+                          <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500 transition-colors dark:text-gray-300">
                             <MessageCircle className="w-5 h-5" />
                             <span className="text-sm">{post.comments}</span>
                           </button>
-                          <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors">
+                          <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500 transition-colors dark:text-gray-300">
                             <Share2 className="w-5 h-5" />
                             <span className="text-sm">{post.shares}</span>
                           </button>
