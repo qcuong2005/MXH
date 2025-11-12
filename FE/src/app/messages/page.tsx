@@ -88,7 +88,8 @@ export default function MessagesPage() {
     const token = localStorage.getItem("token");
     const id = localStorage.getItem("userId");
     const avatar = localStorage.getItem("avatar");
-    const name = localStorage.getItem("userName");
+    const name = localStorage.getItem("username");
+    
     if (token && id) {
       setCurrentUser({
         id: Number(id),
@@ -135,6 +136,34 @@ export default function MessagesPage() {
       setUsers(sortedUsers);
     });
   }, [currentUser]); // Chỉ deps currentUser
+
+  // ✅ NEW: Auto-select chat từ localStorage khi users load (sau khi click Message từ AllFriends)
+  useEffect(() => {
+    if (users.length === 0) return; // Chờ users load xong
+
+    const selectedFriendIdStr = localStorage.getItem("selectedFriendId");
+    const selectedConversationIdStr = localStorage.getItem("selectedConversationId");
+
+    if (selectedFriendIdStr) {
+      const selectedFriendId = Number(selectedFriendIdStr);
+      // Tìm user tương ứng trong users
+      const targetUser = users.find((u) => u.id === selectedFriendId);
+      if (targetUser) {
+        // Set selectedChat (sẽ trigger load messages)
+        setSelectedChat(targetUser);
+        // ✅ Optional: Đẩy lên đầu order nếu chưa (nhưng thường đã có từ AllFriends)
+        if (!userOrder.includes(selectedFriendId)) {
+          const newOrder = [selectedFriendId, ...userOrder];
+          setUserOrder(newOrder);
+          saveUserOrder(newOrder);
+        }
+        console.log("✅ Auto-selected chat for user:", selectedFriendId);
+      }
+      // ✅ Clear localStorage sau khi set (tránh set lại lần sau khi refresh/reload trang)
+      localStorage.removeItem("selectedFriendId");
+      localStorage.removeItem("selectedConversationId");
+    }
+  }, [users]); // Deps: users (chạy sau khi users load)
 
   // ✅ Update status online/offline (không ảnh hưởng persist message)
   useEffect(() => {
@@ -366,4 +395,4 @@ export default function MessagesPage() {
       </div>
     </div>
   );
-}
+} 

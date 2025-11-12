@@ -1,17 +1,26 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { MapPin, Calendar, MessageCircle, Share2 } from "lucide-react";
 import { formatDate, formatNumber } from "@/lib/utisls";
 import { fetchAPI } from "@/lib/api";
 import anhmacdinh from "../../image/anhmacdinh.jpg";
-import Likes from "./likes";
-import CommentForm from "./Comments";
+import Likes from "./Posts/likes";
 import { getCommentsByPost } from "@/services/api";
 import type { Post } from "../types";
 import type { Comment as AppComment } from "../types";
+import CommentForm from "./Posts/Comments";
 
-export default function ProfileHeader() {
+interface ProfileHeaderProps {
+  userId?: number | null;
+}
+
+export default function ProfileHeader({ userId }: ProfileHeaderProps) {
+  const searchParams = useSearchParams();
+  const paramUserId = searchParams.get("userId") ? Number(searchParams.get("userId")) : undefined;
+  const effectiveUserId = userId ?? paramUserId ?? Number(localStorage.getItem("userId") || 0);
   const [user, setUser] = useState<any>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,18 +29,18 @@ export default function ProfileHeader() {
   const [shareCounts, setShareCounts] = useState<Record<number, number>>({});
   const [openCommentPost, setOpenCommentPost] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentUserId = Number(localStorage.getItem("userId") || 0);
+  const isOwnProfile = effectiveUserId === currentUserId;
 
   // ====== Lấy thông tin user + bài viết ======
   useEffect(() => {
     async function getUserData() {
+      if (!effectiveUserId) return;
       try {
-        const id = localStorage.getItem("userId");
-        if (!id) return;
-
-        const data = await fetchAPI(`/users/${id}`);
+        const data = await fetchAPI(`/users/${effectiveUserId}`);
         setUser(data);
 
-        const userPosts = await fetchAPI(`/post/user/${id}`);
+        const userPosts = await fetchAPI(`/post/user/${effectiveUserId}`);
         setPosts(userPosts);
 
         // Đếm comment
@@ -60,7 +69,7 @@ export default function ProfileHeader() {
     }
 
     getUserData();
-  }, []);
+  }, [effectiveUserId]);
 
   // ====== Đếm comment (bao gồm reply) ======
   const countAllComments = (list: AppComment[]): number => {
@@ -139,8 +148,7 @@ export default function ProfileHeader() {
       </div>
     );
   }
-
-  // ====== Giao diện ======
+  console.log(user)
   return (
     <div className="bg-white shadow-md rounded-lg mb-6">
       {/* COVER */}
@@ -157,30 +165,34 @@ export default function ProfileHeader() {
                   alt="avatar"
                   className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white -mt-12 md:-mt-16 object-cover"
                 />
-                <button
-                  onClick={handleEditAvatar}
-                  className="absolute bottom-0 right-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-300"
-                >
-                  📷
-                </button>
+                {isOwnProfile && (
+                  <button
+                    onClick={handleEditAvatar}
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-300"
+                  >
+                    📷
+                  </button>
+                )}
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {user.username || "Ẩn danh"}
+                  {user.fullName || "Ẩn danh"}
                 </h1>
-                <p className="text-gray-600">@{user.fullName}</p>
+                <p className="text-gray-600">@{user.username}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex space-x-3 mt-4 md:mt-0">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
-              Follow
-            </button>
-            <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300">
-              Message
-            </button>
-          </div>
+          {!isOwnProfile && (
+            <div className="flex space-x-3 mt-4 md:mt-0">
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
+                Follow
+              </button>
+              <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300">
+                Message
+              </button>
+            </div>
+          )}
         </div>
 
         <input
@@ -236,7 +248,7 @@ export default function ProfileHeader() {
       {/* 🧩 BÀI VIẾT CỦA NGƯỜI DÙNG — GIỐNG FEED */}
       <div className="p-4 md:p-6 border-t border-gray-200">
         <h2 className="text-lg font-semibold mb-4">
-          📜 Bài viết của {user.username}
+          📜 Bài viết của {user.fullName}
         </h2>
 
         {posts.length === 0 ? (
@@ -257,6 +269,9 @@ export default function ProfileHeader() {
                   />
                   <div>
                     <h4 className="font-semibold text-gray-800">
+                      {user.username}
+                    </h4>
+                      <h4 className="font-semibold text-gray-800">
                       {user.username}
                     </h4>
                     <p className="text-xs text-gray-500">
@@ -330,3 +345,4 @@ export default function ProfileHeader() {
     </div>
   );
 }
+ 

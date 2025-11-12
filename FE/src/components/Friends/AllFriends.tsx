@@ -19,7 +19,7 @@ const AllFriends = ({ friends }: { friends: Friend[] }) => {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-
+console.log(friends)
   // ✅ Lấy token và userId an toàn khi render client
   useEffect(() => {
     const storedToken = localStorage.getItem("token");

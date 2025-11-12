@@ -16,7 +16,6 @@ interface SuggestionItem {
 interface SuggestedFriendsProps {
   suggestedFriends: SuggestionItem[];
   socket: Socket | null;
-  // token: string; // <-- 2. KHÔNG CẦN TOKEN Ở ĐÂY
 }
 
 const SuggestedFriends = ({

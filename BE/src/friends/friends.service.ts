@@ -6,7 +6,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Friend } from './entities/friend.entity';
-
 import { CreateFriendDto } from './dto/create-friend.dto';
 import { User } from 'src/user/entities/user.entity';
 
@@ -132,7 +131,7 @@ export class FriendsService {
       id: u.id,
       name: u.fullName ?? u.name ?? u.username ?? 'Unknown User',
       username: u.username ? `@${u.username}` : '',
-      avatar: u.avatarUrl ?? u.avatar ?? '/api/placeholder/60/60',
+      avatar: u.avatar,
       mutualFriends: 0, // Có thể thêm logic tính mutual friends nếu cần
     }));
   }
@@ -198,7 +197,7 @@ async getSentFriendRequests(currentUserId: number) {
       id: u.id,
       name: u.fullName ?? u.name ?? u.username ?? 'Unknown User',
       username: u.username ? `@${u.username}` : '',
-      avatar: u.avatarUrl ?? u.avatar,
+      avatar: u.avatar,
       mutualFriends: 0, // Có thể thêm logic tính mutual friends nếu cần
     }));
   }

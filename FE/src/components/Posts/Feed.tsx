@@ -2,9 +2,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { MessageCircle, Share2 } from "lucide-react";
 import CreatePosts from "./CreatePosts";
-import anhmacdinh from "../../image/anhmacdinh.jpg";
-import type { Post } from "../types";
-import type { Comment as AppComment } from "../types";
+import anhmacdinh from "../../../image/anhmacdinh.jpg";
+import type { Post } from "../../types";
+import type { Comment as AppComment } from "../../types";
 import { fetchAPI } from "@/lib/api";
 import CommentForm from "./Comments";
 import { getCommentsByPost } from "@/services/api";
@@ -162,7 +162,7 @@ export default function Feed() {
                   />
                   <div className="min-w-0">
                     <h4 className="font-semibold text-gray-800 truncate">
-                      {p.user?.username || "Người dùng ẩn danh"}
+                      {p.user?.fullName || "Người dùng ẩn danh"}
                     </h4>
                     <p className="text-xs text-gray-500">
                       {new Date(p.createdAt).toLocaleString()}

@@ -10,7 +10,7 @@ export default function UserSidebar({ users, selectedChat, setSelectedChat }: an
   const filteredUsers = users.filter((u: any) =>
     (u.name || u.username || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
-
+console.log(users)
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
@@ -39,7 +39,7 @@ export default function UserSidebar({ users, selectedChat, setSelectedChat }: an
                   <div className="relative">
                     <Image
                       src={u.avatar || anhmacdinh.src}
-                      alt={u.name || "user"}
+                      alt={u.fullName || "user"}
                       width={48}
                       height={48}
                       className="w-12 h-12 rounded-full object-cover"
