@@ -1,5 +1,5 @@
 
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn} from 'typeorm';
 
 @Entity('messages')
 export class Message {
@@ -26,5 +26,9 @@ export class Message {
 
   @Column({ default: false })
   is_read: boolean;
+
+    // Thêm trường reply_to để lưu ID của tin nhắn trả lời
+  @Column({ nullable: true })
+  reply_to?: number; // ID của tin nhắn đang được trả lời
 
 }
