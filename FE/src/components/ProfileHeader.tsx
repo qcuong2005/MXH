@@ -150,7 +150,7 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
   }
   console.log(user)
   return (
-    <div className="bg-white shadow-md rounded-lg mb-6">
+    <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg mb-6">
       {/* COVER */}
       <div className="h-48 md:h-64 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-t-lg"></div>
 
@@ -168,17 +168,17 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                 {isOwnProfile && (
                   <button
                     onClick={handleEditAvatar}
-                    className="absolute bottom-0 right-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-300"
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                   >
                     📷
                   </button>
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {user.fullName || "Ẩn danh"}
                 </h1>
-                <p className="text-gray-600">@{user.username}</p>
+                <p className="text-gray-600 dark:text-gray-400">@{user.username}</p>
               </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
               <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">
                 Follow
               </button>
-              <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300">
+              <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600">
                 Message
               </button>
             </div>
@@ -205,8 +205,8 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
 
         {/* BIO */}
         <div className="mt-6">
-          <p className="text-gray-900 mb-4">{user.bio || "Chưa có mô tả."}</p>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
+          <p className="text-gray-900 dark:text-gray-100 mb-4">{user.bio || "Chưa có mô tả."}</p>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-400">
             {user.location && (
               <div className="flex items-center space-x-1">
                 <MapPin className="w-4 h-4" />
@@ -223,42 +223,42 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
         </div>
 
         {/* STATS */}
-        <div className="flex space-x-6 mt-6 pt-6 border-t border-gray-200">
+        <div className="flex space-x-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
-            <div className="text-xl font-bold text-gray-900">
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {formatNumber(posts.length)}
             </div>
-            <div className="text-sm text-gray-600">Bài viết</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Bài viết</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-gray-900">
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {formatNumber(user.followers || 0)}
             </div>
-            <div className="text-sm text-gray-600">Người theo dõi</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Người theo dõi</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-gray-900">
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {formatNumber(user.following || 0)}
             </div>
-            <div className="text-sm text-gray-600">Đang theo dõi</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Đang theo dõi</div>
           </div>
         </div>
       </div>
 
       {/* 🧩 BÀI VIẾT CỦA NGƯỜI DÙNG — GIỐNG FEED */}
-      <div className="p-4 md:p-6 border-t border-gray-200">
+      <div className="p-4 md:p-6 border-t border-gray-200 dark:border-gray-700">
         <h2 className="text-lg font-semibold mb-4">
           📜 Bài viết của {user.fullName}
         </h2>
 
         {posts.length === 0 ? (
-          <p className="text-gray-500">Người dùng này chưa đăng bài nào.</p>
+          <p className="text-gray-500 dark:text-gray-400">Người dùng này chưa đăng bài nào.</p>
         ) : (
           <ul className="space-y-6">
             {posts.map((p) => (
               <li
                 key={p.id}
-                className="border rounded-2xl p-4 sm:p-6 shadow-sm bg-white hover:shadow-md transition-all"
+                className="border rounded-2xl p-4 sm:p-6 shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-all"
               >
                 {/* USER INFO */}
                 <div className="flex items-center mb-3">
@@ -268,23 +268,23 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                     className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border"
                   />
                   <div>
-                    <h4 className="font-semibold text-gray-800">
+                    <h4 className="font-semibold text-gray-800 dark:text-gray-100">
                       {user.username}
                     </h4>
-                      <h4 className="font-semibold text-gray-800">
+                      <h4 className="font-semibold text-gray-800 dark:text-gray-100">
                       {user.username}
                     </h4>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(p.createdAt).toLocaleString()}
                     </p>
                   </div>
                 </div>
 
                 {/* POST CONTENT */}
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 break-words">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 break-words">
                   {p.title}
                 </h3>
-                <p className="text-gray-700 mb-3 whitespace-pre-line text-sm sm:text-base">
+                <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-line text-sm sm:text-base">
                   {p.content}
                 </p>
 
@@ -292,28 +292,28 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                   <img
                     src={p.image_url}
                     alt="post"
-                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover"
+                    className="w-full rounded-xl mb-4 border dark:border-gray-700 max-h-[400px] sm:max-h-[500px] object-cover"
                   />
                 )}
 
                 {p.video_url && (
                   <video
                     controls
-                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover"
+                    className="w-full rounded-xl mb-4 border dark:border-gray-700 max-h-[400px] sm:max-h-[500px] object-cover"
                   >
                     <source src={p.video_url} type="video/mp4" />
                   </video>
                 )}
 
                 {/* INTERACTION BAR */}
-                <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 text-sm mt-4 border-t pt-3">
+                <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 dark:text-gray-400 text-sm mt-4 border-t border-gray-200 dark:border-gray-700 pt-3">
                   <Likes postId={p.id} type="post" />
 
                   <button
                     onClick={() =>
                       setOpenCommentPost(openCommentPost === p.id ? null : p.id)
                     }
-                    className="flex items-center gap-1 hover:text-blue-500"
+                    className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                   >
                     <MessageCircle size={18} />
                     <span>{commentCounts[p.id] || 0} Bình luận</span>
@@ -321,7 +321,7 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
 
                   <button
                     onClick={() => handleShare(p)}
-                    className="flex items-center gap-1 hover:text-green-500"
+                    className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400"
                   >
                     <Share2 size={18} />
                     <span>{shareCounts[p.id] || 0} Chia sẻ</span>

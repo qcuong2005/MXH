@@ -10,7 +10,7 @@ import {
   Smile,
   X,
 } from "lucide-react";
-import type { Comment } from "@/types";
+import type { Comment as AppComment } from "@/types";
 import { createComment, getCommentsByPost } from "@/services/api";
 import anhmacdinh from "../../../image/anhmacdinh.jpg"
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
@@ -24,7 +24,7 @@ interface CommentFormProps {
 export default function CommentForm({ postId, onCommentAdded }: CommentFormProps) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<AppComment[]>([]);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -42,7 +42,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
     async function loadComments() {
       try {
         const data = await getCommentsByPost(postId);
-        const flattenToTwoLevels = (list: Comment[]): Comment[] =>
+        const flattenToTwoLevels = (list: AppComment[]): AppComment[] =>
           list.map((c) => ({
             ...c,
             children: c.children
@@ -201,7 +201,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   };
 
   // ===== Render Comments =====
-  const renderComments = (list: Comment[]) => (
+  const renderComments = (list: AppComment[]) => (
     <div className="space-y-4">
       {list.map((c) => {
         const isCollapsed = collapsed.has(c.id);
@@ -211,7 +211,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
         return (
           <div
             key={`parent-${c.id}`}
-            className={`border-b pb-3 transition-all duration-700 ${
+            className={`border-b pb-3 transition-all duration-700 dark:border-gray-700 ${
               (c as any)._isNew ? "animate-fadeSlide" : ""
             }`}
           >
@@ -219,13 +219,13 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
               <img
                 src={c.user.avatar || anhmacdinh.src}
                 alt="avatar"
-                className={`w-9 h-9 rounded-full object-cover border ${
+                className={`w-9 h-9 rounded-full object-cover border dark:border-gray-700 ${
                   (c as any)._isNew ? "animate-ping-avatar" : ""
                 }`}
               />
               <div className="flex-1">
-                <div className="font-medium text-gray-800">{c.user.fullName}</div>
-                <p className="text-gray-700 text-sm whitespace-pre-line">
+                <div className="font-medium text-gray-800 dark:text-gray-100">{c.user.fullName}</div>
+                <p className="text-gray-700 text-sm whitespace-pre-line dark:text-gray-300">
                   {c.content.startsWith("@") ? (
                     <>
                       <span className="text-blue-600 font-medium">
@@ -237,11 +237,11 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                     c.content
                   )}
                 </p>
-                <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                <div className="flex items-center gap-4 text-xs text-gray-500 mt-1 dark:text-gray-400">
                   <LikeComment commentId={c.id} />
                   <button
                     onClick={() => toggleReply(c.id, c.user.username)}
-                    className="flex items-center gap-1 hover:text-blue-500"
+                    className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                   >
                     <CornerDownRight size={14} /> Trả lời
                   </button>
@@ -260,12 +260,12 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                     placeholder={`Phản hồi ${replyTarget}...`}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    className="border rounded-full px-3 py-1 w-3/4 focus:ring-2 focus:ring-blue-400 text-sm"
+                    className="border rounded-full px-3 py-1 w-3/4 focus:ring-2 focus:ring-blue-400 text-sm dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   />
                   <button
                     type="button"
                     onClick={() => setShowReplyEmojiPicker((prev) => !prev)}
-                    className="ml-2 text-gray-500 hover:text-yellow-500"
+                    className="ml-2 text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400"
                   >
                     <Smile size={18} />
                   </button>
@@ -278,7 +278,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                   </button>
                 </div>
                 {showReplyEmojiPicker && replyingTo === c.id && (
-                  <div className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg">
+                  <div className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700">
                     <div className="flex justify-end">
                       <button
                         onClick={() => setShowReplyEmojiPicker(false)}
@@ -307,15 +307,15 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                       <img
                         src={child.user.avatar || anhmacdinh.src}
                         alt="avatar"
-                        className={`w-8 h-8 rounded-full object-cover border ${
+                        className={`w-8 h-8 rounded-full object-cover border dark:border-gray-700 ${
                           (child as any)._isNew ? "animate-ping-avatar" : ""
                         }`}
                       />
                       <div className="flex-1">
-                        <div className="font-medium text-gray-800 text-sm">
+                        <div className="font-medium text-gray-800 text-sm dark:text-gray-100">
                           {child.user.username}
                         </div>
-                        <p className="text-gray-700 text-sm whitespace-pre-line">
+                        <p className="text-gray-700 text-sm whitespace-pre-line dark:text-gray-300">
                           {child.content.startsWith("@") ? (
                             <>
                               <span className="text-blue-600 font-medium">
@@ -327,11 +327,11 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                             child.content
                           )}
                         </p>
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 dark:text-gray-400">
                           <LikeComment commentId={child.id} />
                           <button
                             onClick={() => toggleReply(child.id, child.user.username)}
-                            className="flex items-center gap-1 hover:text-blue-500"
+                            className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                           >
                             <CornerDownRight size={13} /> Trả lời
                           </button>
@@ -350,12 +350,12 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                             placeholder={`Phản hồi ${replyTarget}...`}
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
-                            className="border rounded-full px-3 py-1 w-3/4 focus:ring-2 focus:ring-blue-400 text-sm"
+                            className="border rounded-full px-3 py-1 w-3/4 focus:ring-2 focus:ring-blue-400 text-sm dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                           />
                           <button
                             type="button"
                             onClick={() => setShowReplyEmojiPicker((prev) => !prev)}
-                            className="ml-2 text-gray-500 hover:text-yellow-500"
+                            className="ml-2 text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400"
                           >
                             <Smile size={18} />
                           </button>
@@ -367,8 +367,8 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                             <Send size={14} />
                           </button>
                         </div>
-                        {showReplyEmojiPicker && replyingTo === child.id && (
-                          <div className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg">
+                          {showReplyEmojiPicker && replyingTo === child.id && (
+                          <div className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex justify-end">
                               <button
                                 onClick={() => setShowReplyEmojiPicker(false)}
@@ -383,7 +383,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                               lazyLoadEmojis
                             />
                           </div>
-                        )}
+                          )}
                       </div>
                     )}
                   </div>
@@ -423,12 +423,12 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
             placeholder="Viết bình luận..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="border rounded-full px-3 py-1 w-full focus:ring-2 focus:ring-blue-400 text-sm"
+            className="border rounded-full px-3 py-1 w-full focus:ring-2 focus:ring-blue-400 text-sm dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
           />
           <button
             type="button"
             onClick={() => setShowMainEmojiPicker((prev) => !prev)}
-            className="text-gray-500 hover:text-yellow-500"
+            className="text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400"
           >
             <Smile size={20} />
           </button>
@@ -443,7 +443,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
 
         {/* Picker Emoji cho bình luận chính */}
         {showMainEmojiPicker && (
-          <div className="absolute z-10 mt-2 right-0 bg-white border rounded-lg shadow-lg">
+          <div className="absolute z-10 mt-2 right-0 bg-white border rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700">
             <div className="flex justify-end">
               <button
                 onClick={() => setShowMainEmojiPicker(false)}
@@ -460,13 +460,13 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
       {/* Nút hiển thị bình luận */}
       <button
         onClick={toggleShowComments}
-        className="mt-3 flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600"
+        className="mt-3 flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 dark:text-gray-300"
       >
         <MessageCircle size={18} />
         {showComments ? "Ẩn bình luận" : "Hiện bình luận"}
       </button>
 
-      {showComments && <div className="mt-3 border-t pt-3">{renderComments(comments)}</div>}
+      {showComments && <div className="mt-3 border-t pt-3 dark:border-gray-700">{renderComments(comments)}</div>}
     </div>
   );
 }

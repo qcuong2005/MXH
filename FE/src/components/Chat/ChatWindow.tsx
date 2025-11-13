@@ -445,7 +445,7 @@ console.log("incomingCall",incomingCall)
       }
     };
     socket.on("userTyping", handleTyping);
-    return () => socket.off("userTyping", handleTyping);
+    return () => { socket.off("userTyping", handleTyping); };
   }, [socket, selectedChat?.id]);
 
   // --- SEND MESSAGE ---
@@ -530,7 +530,7 @@ console.log("incomingCall",incomingCall)
       });
     };
     socket.on("newMessage", handleNew);
-    return () => socket.off("newMessage", handleNew);
+    return () => { socket.off("newMessage", handleNew); };
   }, [socket, conversationId, currentUser?.id, setMessagesData, onNewMessageUpdate, selectedChat?.id]);
   // === HẾT PHẦN FIX ===
 
@@ -615,19 +615,19 @@ console.log("incomingCall",incomingCall)
       socket.off("outgoingCall", handleIncomingCall);
       socket.off("callEndedByPeer", handleOnHangUp);
     };
-  }, [socket, handleOnHangUp]);
+  }, [socket, handleIncomingCall, handleOnHangUp]);
 
   if (!selectedChat)
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500 bg-gray-50">
+      <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
         Chọn người để bắt đầu trò chuyện
       </div>
     );
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 h-full min-h-0">
+    <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 h-full min-h-0">
       {/* Header */}
-      <div className="p-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0 bg-white shadow-sm">
+      <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
         <div className="flex items-center space-x-3">
           <div className="relative">
             <Image
@@ -647,10 +647,10 @@ console.log("incomingCall",incomingCall)
             />
           </div>
           <div>
-            <h2 className="font-semibold text-gray-900 text-sm">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
               {selectedChat.name || selectedChat.username}
             </h2>
-            <p className="text-xs text-gray-500 flex items-center min-h-[1rem]">
+            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center min-h-[1rem]">
               {isTyping ? (
                 <TypingIndicator />
               ) : selectedChat.status === "online" ? (
@@ -664,23 +664,23 @@ console.log("incomingCall",incomingCall)
         <div className="flex items-center space-x-1.5">
           <button
             onClick={() => handleStartCall("voice")}
-            className="p-2.5 hover:bg-gray-100 rounded-full transition-colors duration-200"
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
           >
-            <Phone className="w-4 h-4 text-gray-600" />
+            <Phone className="w-4 h-4 text-gray-600 dark:text-gray-300" />
           </button>
           <button
             onClick={() => handleStartCall("video")}
-            className="p-2.5 hover:bg-gray-100 rounded-full transition-colors duration-200"
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
           >
-            <Video className="w-4 h-4 text-gray-600" />
+            <Video className="w-4 h-4 text-gray-600 dark:text-gray-300" />
           </button>
-          <button className="p-2.5 hover:bg-gray-100 rounded-full transition-colors duration-200">
-            <MoreVertical className="w-4 h-4 text-gray-600" />
+          <button className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200">
+            <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
       </div>
       {/* MESSAGES AREA */}
-      <div className="flex-1 overflow-hidden min-h-0 bg-white">
+      <div className="flex-1 overflow-hidden min-h-0 bg-white dark:bg-gray-900">
         <MessagesList
           messages={messagesData}
           selectedChat={selectedChat} // <--- CHÚ Ý: TRUYỀN CẢ OBJECT SELECTEDCHAT
@@ -689,21 +689,21 @@ console.log("incomingCall",incomingCall)
         />
       </div>
       {/* INPUT */}
-      <div className="p-3 border-t border-gray-200 bg-white flex-shrink-0 relative shadow-sm">
+      <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0 relative shadow-sm">
         {replyMessage && (
           <div className="flex items-center justify-between px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-2.5">
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-blue-700">
                 Đang trả lời:
               </p>
-              <p className="text-xs text-gray-600 truncate pr-2">
+              <p className="text-xs text-gray-600 dark:text-gray-300 truncate pr-2">
                 {replyMessage.content}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setReplyMessage(null)}
-              className="p-1.5 rounded-full text-gray-500 hover:bg-blue-100 transition-colors duration-200 ml-2"
+              className="p-1.5 rounded-full text-gray-500 dark:text-gray-300 hover:bg-blue-100 transition-colors duration-200 ml-2"
             >
               <X size={16} />
             </button>
@@ -713,7 +713,7 @@ console.log("incomingCall",incomingCall)
           <button
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-2.5 rounded-full hover:bg-gray-100 text-gray-500 transition-colors duration-200 flex-shrink-0"
+            className="p-2.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-300 transition-colors duration-200 flex-shrink-0"
           >
             <Smile className="w-4 h-4" />
           </button>
@@ -724,7 +724,7 @@ console.log("incomingCall",incomingCall)
             onChange={(e) => setMessageInput(e.target.value)}
             onInput={emitTyping}
             placeholder="Nhập tin nhắn..."
-            className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm placeholder-gray-400 transition-all duration-200"
+            className="flex-1 px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200"
           />
           <button
             type="submit"
@@ -766,4 +766,4 @@ console.log("incomingCall",incomingCall)
       )}
     </div>
   );
-}  
+}

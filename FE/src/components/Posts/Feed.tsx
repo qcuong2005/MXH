@@ -44,7 +44,7 @@ export default function Feed() {
       });
 
       const result = Array.isArray(res) ? { data: res, total: res.length } : res;
-      const newPosts = result.data;
+      const newPosts: Post[] = result.data as Post[];
 
       // ✅ Nếu hết bài → dừng
       if (newPosts.length === 0) {
@@ -70,8 +70,8 @@ export default function Feed() {
 
       // ✅ Gộp bài viết mới, loại trùng key
       setPosts((prev) => {
-        const existingIds = new Set(prev.map((p) => p.id));
-        const uniqueNew = newPosts.filter((p) => !existingIds.has(p.id));
+        const existingIds = new Set(prev.map((p: Post) => p.id));
+        const uniqueNew = newPosts.filter((p: Post) => !existingIds.has(p.id));
         return [...prev, ...uniqueNew];
       });
 
@@ -142,7 +142,7 @@ export default function Feed() {
       <CreatePosts posts={posts} setPosts={setPosts} />
 
       {posts.length === 0 && !loading ? (
-        <p className="text-center text-gray-500">Chưa có bài viết nào.</p>
+        <p className="text-center text-gray-500 dark:text-gray-400">Chưa có bài viết nào.</p>
       ) : (
         <ul className="space-y-6">
           {posts.map((p, index) => {
@@ -151,30 +151,30 @@ export default function Feed() {
               <li
                 ref={isLast ? lastPostRef : null}
                 key={`${p.id}-${p.createdAt}`}
-                className="border rounded-2xl p-4 sm:p-6 shadow-sm bg-white hover:shadow-md transition-all"
+                className="border rounded-2xl p-4 sm:p-6 shadow-sm bg-white hover:shadow-md transition-all dark:bg-gray-800 dark:border-gray-700"
               >
                 {/* USER INFO */}
                 <div className="flex items-center mb-3">
                   <img
                     src={p.user?.avatar || anhmacdinh.src}
                     alt="avatar"
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border dark:border-gray-700"
                   />
                   <div className="min-w-0">
-                    <h4 className="font-semibold text-gray-800 truncate">
+                    <h4 className="font-semibold text-gray-800 truncate dark:text-gray-100">
                       {p.user?.fullName || "Người dùng ẩn danh"}
                     </h4>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(p.createdAt).toLocaleString()}
                     </p>
                   </div>
                 </div>
 
                 {/* POST CONTENT */}
-                <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 break-words">
+                <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 break-words dark:text-gray-100">
                   {p.title}
                 </h3>
-                <p className="text-gray-700 mb-3 whitespace-pre-line text-base sm:text-lg">
+                <p className="text-gray-700 mb-3 whitespace-pre-line text-base sm:text-lg dark:text-gray-300">
                   {p.content}
                 </p>
 
@@ -182,28 +182,28 @@ export default function Feed() {
                   <img
                     src={p.image_url}
                     alt="post"
-                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover"
+                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700"
                   />
                 )}
 
                 {p.video_url && (
                   <video
                     controls
-                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover"
+                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700"
                   >
                     <source src={p.video_url} type="video/mp4" />
                   </video>
                 )}
 
                 {/* INTERACTION BAR */}
-                <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 text-sm mt-4 border-t pt-3">
-                  <Likes postId={p.id} type="post" />
+                <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 text-sm mt-4 border-t pt-3 dark:text-gray-300 dark:border-gray-700">
+                  <Likes postId={p.id} />
 
                   <button
                     onClick={() =>
                       setOpenCommentPost(openCommentPost === p.id ? null : p.id)
                     }
-                    className="flex items-center gap-1 hover:text-blue-500"
+                    className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                   >
                     <MessageCircle size={18} />
                     <span>{commentCounts[p.id] || 0} Bình luận</span>
@@ -211,7 +211,7 @@ export default function Feed() {
 
                   <button
                     onClick={() => handleShare(p)}
-                    className="flex items-center gap-1 hover:text-green-500"
+                    className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400"
                   >
                     <Share2 size={18} />
                     <span>{shareCounts[p.id] || 0} Chia sẻ</span>
@@ -220,7 +220,7 @@ export default function Feed() {
 
                 {/* COMMENT SECTION */}
                 {openCommentPost === p.id && (
-                  <div className="mt-4 border-t pt-3">
+                  <div className="mt-4 border-t pt-3 dark:border-gray-700">
                     <CommentForm
                       postId={p.id}
                       onCommentAdded={() => handleCommentAdded(p.id)}

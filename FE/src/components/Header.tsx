@@ -1,15 +1,30 @@
 "use client";
 
-import { Search, Bell, User, Video } from 'lucide-react';
-import { useState } from "react";
+import { Search, Bell, User, Video, Moon, Sun } from 'lucide-react';
+import { useEffect, useState } from "react";
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    const enabled = saved === "dark";
+    setIsDark(enabled);
+    document.documentElement.classList.toggle("dark", enabled);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  };
 
   return (
     <>
       {/* Desktop Header */}
-      <header className="hidden lg:block bg-white border-b border-gray-200 px-4 py-3">
+      <header className="hidden lg:block bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <a href="/">
@@ -17,7 +32,7 @@ export default function Header() {
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">V</span>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">VTC Media</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">VTC Media</h1>
           </div>
 </a>
           {/* Search Bar */}
@@ -29,7 +44,7 @@ export default function Header() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
           </div>
@@ -43,7 +58,11 @@ export default function Header() {
               </span>
             </button>
 
-            <button className="flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
+            <button onClick={toggleTheme} className="flex items-center space-x-2 p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            <button className="flex items-center space-x-2 p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
               <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                 <User className="w-4 h-4" />
               </div>
@@ -53,29 +72,32 @@ export default function Header() {
       </header>
 
       {/* Mobile Header - Simplified */}
-      <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">
+      <header className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs">V</span>
             </div>
-            <h1 className="text-lg font-bold text-gray-900">VTC Media</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">VTC Media</h1>
           </div>
 
           {/* Mobile Actions */}
           <div className="flex items-center space-x-3">
             {/* Search Button */}
-            <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
+            <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
               <Search className="w-5 h-5" />
             </button>
 
             {/* Notifications */}
-            <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
+            <button className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
               <Bell className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                 3
               </span>
+            </button>
+            <button onClick={toggleTheme} className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -89,7 +111,7 @@ export default function Header() {
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
           </div>
         </div>

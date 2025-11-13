@@ -14,11 +14,23 @@ import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import IncomingCallModal from "@/components/Chat/IncomingCallModal";
 import CallPage from "@/components/Chat/Call";
 
+interface ChatUser {
+  id: number;
+  name?: string;
+  username?: string;
+  avatar?: string;
+  status?: "online" | "offline" | string;
+  lastMessage?: string;
+  unreadCount?: number;
+  lastMessageTime?: string;
+  isUnread?: boolean;
+}
+
 export default function MessagesPage() {
   const { socket } = useSocket();
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [users, setUsers] = useState<any[]>([]);
-  const [selectedChat, setSelectedChat] = useState<any>(null);
+  const [users, setUsers] = useState<ChatUser[]>([]);
+  const [selectedChat, setSelectedChat] = useState<ChatUser | null>(null);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [messagesData, setMessagesData] = useState<any[]>([]);
   // ✅ State để lưu thứ tự users (persist vị trí)
@@ -49,8 +61,8 @@ export default function MessagesPage() {
   };
 
   // ✅ Merge: Ưu tiên local lastMessage nếu có (không rỗng) và API rỗng, hoặc localTime > apiTime
-  const mergeUserData = (apiUser: any, localData: any) => {
-    const merged = { ...apiUser };
+  const mergeUserData = (apiUser: ChatUser, localData: Partial<ChatUser> & { updatedAt?: string }) => {
+    const merged: ChatUser = { ...apiUser };
     let useLocalMessage = false;
 
     // Nếu API không có lastMessageTime hoặc local mới hơn → ưu tiên local
@@ -108,9 +120,8 @@ export default function MessagesPage() {
     fetchAPI("/users", {
       headers: { Authorization: `Bearer ${currentUser.token}` },
     }).then((data) => {
-      const filtered = (data || []).filter((u: any) => u.id !== currentUser.id);
-      // ✅ Enhanced: Merge API với local data
-      const enhancedUsers = filtered.map((u: any) => {
+      const filtered: ChatUser[] = (data || []).filter((u: ChatUser) => u.id !== currentUser.id);
+      const enhancedUsers: ChatUser[] = filtered.map((u: ChatUser) => {
         const localData = loadUserData(u.id);
         const merged = mergeUserData(u, localData);
         return {
@@ -118,17 +129,18 @@ export default function MessagesPage() {
           isUnread: (merged.unreadCount || 0) > 0,
         };
       });
-      // ✅ Sort theo userOrder (persist): ...
-      let sortedUsers: any[];
+      let sortedUsers: ChatUser[];
       if (userOrder.length > 0) {
         sortedUsers = userOrder
-          .map((id) => enhancedUsers.find((u) => u.id === id))
+          .map((id: number) => enhancedUsers.find((u: ChatUser) => u.id === id) as ChatUser)
           .filter(Boolean)
           .concat(
-            enhancedUsers.filter((u) => !userOrder.includes(u.id)).sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime())
+            enhancedUsers
+              .filter((u: ChatUser) => !userOrder.includes(u.id))
+              .sort((a: ChatUser, b: ChatUser) => new Date(b.lastMessageTime || 0).getTime() - new Date(a.lastMessageTime || 0).getTime())
           );
       } else {
-        sortedUsers = enhancedUsers.sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+        sortedUsers = enhancedUsers.sort((a: ChatUser, b: ChatUser) => new Date(b.lastMessageTime || 0).getTime() - new Date(a.lastMessageTime || 0).getTime());
         const newOrder = sortedUsers.map((u) => u.id);
         setUserOrder(newOrder);
         saveUserOrder(newOrder);
@@ -147,7 +159,7 @@ export default function MessagesPage() {
     if (selectedFriendIdStr) {
       const selectedFriendId = Number(selectedFriendIdStr);
       // Tìm user tương ứng trong users
-      const targetUser = users.find((u) => u.id === selectedFriendId);
+      const targetUser = users.find((u: ChatUser) => u.id === selectedFriendId);
       if (targetUser) {
         // Set selectedChat (sẽ trigger load messages)
         setSelectedChat(targetUser);
@@ -176,7 +188,7 @@ export default function MessagesPage() {
         )
       );
       if (selectedChat?.id === data.userId) {
-        setSelectedChat((prev: any) => ({ ...prev, status: data.status }));
+        setSelectedChat((prev) => (prev ? { ...prev, status: data.status } : prev));
       }
     };
     socket.on("userStatus", handleStatusUpdate);
@@ -197,7 +209,8 @@ export default function MessagesPage() {
         console.log("📖 Emitted markRead via socket for conv:", convId);
       }
       // ✅ Update state: reset unread cho selectedChat (KHÔNG update lastMessage hoặc order)
-      const targetUserId = selectedChat.id;
+      const targetUserId = selectedChat?.id;
+      if (!targetUserId) return;
       setUsers((prevUsers) =>
         prevUsers.map((u) =>
           u.id === targetUserId
@@ -215,9 +228,9 @@ export default function MessagesPage() {
 
   // ✅ Load tin nhắn khi chọn user (với resolve replies + mark read) – KHÔNG sync lastMessage vào sidebar
   const resolveReplies = (messages: any[]) => {
-    const messageMap = new Map(messages.map((m) => [m.id, m]));
-    return messages.map((msg) => {
-      let finalMsg = { ...msg };
+    const messageMap = new Map(messages.map((m: any) => [m.id, m]));
+    return messages.map((msg: any) => {
+      let finalMsg: any = { ...msg };
       const replyId = finalMsg.reply_to;
       if (replyId && typeof replyId === "number") {
         const originalMessage = messageMap.get(replyId);
@@ -311,10 +324,12 @@ export default function MessagesPage() {
 
       // Sort theo newOrder mới (đẩy lên đầu)
       const sorted = newOrder
-        .map((id) => updatedUsers.find((u) => u.id === id))
+        .map((id: number) => updatedUsers.find((u: ChatUser) => u.id === id) as ChatUser)
         .filter(Boolean)
         .concat(
-          updatedUsers.filter((u) => !newOrder.includes(u.id)).sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime())
+          updatedUsers
+            .filter((u: ChatUser) => !newOrder.includes(u.id))
+            .sort((a: ChatUser, b: ChatUser) => new Date(b.lastMessageTime || 0).getTime() - new Date(a.lastMessageTime || 0).getTime())
         );
 
       return sorted; // Update state → sidebar re-render, conversation đẩy lên đầu + lastMessage mới + màu
@@ -322,7 +337,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
@@ -395,4 +410,4 @@ export default function MessagesPage() {
       </div>
     </div>
   );
-} 
+}
