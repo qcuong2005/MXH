@@ -1,11 +1,13 @@
-"use client";import { fetchAPI } from "@/lib/api";
+"use client";
+
+import { fetchAPI } from "@/lib/api";
 import {
   Home,
-  User,
+  UserCircle,
   Settings,
   LogOut,
   Users,
-  MessageCircle,
+  MessageSquare,
   Bookmark,
   PanelLeftClose,
   PanelRightClose,
@@ -18,10 +20,10 @@ import anhmacdinh from "../../image/anhmacdinh.jpg";
 
 const navigation = [
   { name: "Home", icon: Home, href: "/", notifications: 0 },
-  { name: "Profile", icon: User, href: "/profile", notifications: 0 },
+  { name: "Profile", icon: UserCircle, href: "/profile", notifications: 0 },
   {
     name: "Messages",
-    icon: MessageCircle,
+    icon: MessageSquare,
     href: "/messages",
     notifications: 3,
   },
@@ -57,42 +59,48 @@ export default function Sidebar() {
           collapsed ? "w-20" : "w-64"
         }`}
       >
-        {/* Toggle Button */}
-        <div className="p-3 flex justify-end">
-          <button
-            onClick={() => setCollapsed((c) => !c)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all duration-200 hover:scale-110 hover:rotate-180"
-            aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-          >
-            {collapsed ? <PanelRightClose className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-          </button>
-        </div>
-        {/* User Profile Section */}
-        <div className={`p-6 border-b border-gray-200 dark:border-gray-800 ${collapsed ? "px-3" : ""}`}>
-          <div className={`flex items-center ${collapsed ? "justify-center" : "space-x-3"}`}>
-            <a href="/profile" >
-            <Image
-              src={user?.avatar || anhmacdinh.src}
-              alt="avatar"
-              width={48}
-              height={48}
-              className={`w-12 h-12 rounded-full object-cover border ${collapsed ? "mx-auto" : ""}`}
-            />
-            </a>
-            {!collapsed && (<div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                {user?.fullName || "Ẩn danh"}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                @{user?.email || "no-email"}
-              </p>
-            </div>)}
+        <div className={`p-3 border-b border-gray-200 dark:border-gray-800 ${collapsed ? "px-3" : ""}`}>
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center ${collapsed ? "" : "space-x-3"}`}>
+              <a href="/profile" className="relative">
+                <div className={`relative w-12 h-12 ${collapsed ? "mx-auto" : ""}`}>
+                  <Image
+                    src={user?.avatar || anhmacdinh.src}
+                    alt="avatar"
+                    fill
+                    sizes="48px"
+                    className="rounded-full object-cover border ring-2 ring-primary-500/20 dark:ring-gray-700 shadow-sm"
+                  />
+                </div>
+              </a>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                    {user?.fullName || "Ẩn danh"}
+                  </h3>
+                  <p className="text-xs leading-tight text-gray-500 dark:text-gray-400 truncate">
+                    @{user?.email || "no-email"}
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setCollapsed((c) => !c)}
+              className="p-2 rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-sm flex-shrink-0"
+              aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+            >
+              {collapsed ? (
+                <PanelRightClose className="w-4 h-4" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 p-3">
+          <ul className="space-y-1.5">
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -101,17 +109,21 @@ export default function Sidebar() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors duration-200 ${
                       isActive
-                        ? "bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/20 text-primary-700 dark:text-primary-300 border-r-2 border-primary-600 shadow-sm"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:scale-[1.02]"
+                        ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 ring-1 ring-primary-200 dark:ring-primary-700"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     }`}
                   >
                     <div className={`flex items-center ${collapsed ? "" : "space-x-3"}`}>
                       <div className={`relative ${collapsed ? "mx-auto" : ""}`}>
-                        <Icon className="w-5 h-5" />
+                        <span className={`inline-flex items-center justify-center ${collapsed ? "p-2" : "p-1.5"} rounded-lg ${
+                          isActive ? "bg-primary-100 dark:bg-primary-800/30" : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+                        }`}>
+                          <Icon className="w-5 h-5" />
+                        </span>
                         {item.notifications > 0 && collapsed && (
-                          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-semibold shadow-sm">
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-semibold shadow-sm">
                             {item.notifications > 9 ? "9" : item.notifications}
                           </span>
                         )}
@@ -119,7 +131,7 @@ export default function Sidebar() {
                       {!collapsed && <span className="font-medium">{item.name}</span>}
                     </div>
                     {item.notifications > 0 && !collapsed && (
-                      <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center font-semibold shadow-sm">
+                      <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center font-semibold shadow-sm">
                         {item.notifications > 9 ? "9+" : item.notifications}
                       </span>
                     )}

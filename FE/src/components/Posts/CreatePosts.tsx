@@ -106,7 +106,7 @@
 "use client";
 import { useState, useRef } from "react";
 // Thêm các icon mới: Image, Video, X
-import { PlusCircle, Smile, Image, Video, X } from "lucide-react";
+import { Smile, Image, Video, X } from "lucide-react";
 import { createPost } from "@/services/api";
 import { Post } from "@/types";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
@@ -117,7 +117,6 @@ interface Props {
 }
 
 export default function CreatePosts({ posts, setPosts }: Props) {
-  const [showForm, setShowForm] = useState(false);
   const [content, setContent] = useState("");
   const [visibility, setVisibility] = useState("friends");
   const [image, setImage] = useState<File | null>(null);
@@ -131,19 +130,7 @@ export default function CreatePosts({ posts, setPosts }: Props) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
 
-  const toggleForm = () => {
-    setShowForm((prev) => !prev);
-    // Reset mọi thứ khi đóng form
-    if (showForm) {
-      setContent("");
-      setImage(null);
-      setVideo(null);
-      setImagePreview(null);
-      setVideoPreview(null);
-      setMessage("");
-      setShowEmojiPicker(false);
-    }
-  };
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     // ... logic handleSubmit không đổi ...
@@ -172,7 +159,6 @@ export default function CreatePosts({ posts, setPosts }: Props) {
       setVideo(null);
       setImagePreview(null);
       setVideoPreview(null);
-      setShowForm(false);
       setShowEmojiPicker(false);
     } catch (err: any) {
       console.error("Lỗi khi đăng bài:", err);
@@ -243,33 +229,23 @@ export default function CreatePosts({ posts, setPosts }: Props) {
 
   return (
     <div className="mb-6">
-      <button
-        onClick={toggleForm}
-        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        <PlusCircle size={18} /> {showForm ? "Đóng lại" : "Tạo bài viết"}
-      </button>
-
-      {showForm && (
-        // Giảm padding một chút để gọn hơn
         <form
           onSubmit={handleSubmit}
-          className="bg-white p-4 border rounded-2xl shadow-sm mt-4 dark:bg-gray-800 dark:border-gray-700"
+          className="bg-white p-4 border rounded-2xl shadow-sm mt-0 dark:bg-gray-800 dark:border-gray-700"
         >
           {/* Giảm kích thước font title */}
           <h2 className="text-md font-semibold text-gray-700 mb-3 dark:text-gray-200">
             Tạo bài viết mới
           </h2>
 
-          {/* Bỏ nút emoji ra khỏi textarea */}
           <div className="relative">
             <textarea
               ref={textareaRef}
               placeholder="Bạn đang nghĩ gì?"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows={3} // Giảm chiều cao mặc định
-              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" // Bỏ pr-10
+              rows={3}
+              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
             />
           </div>
 
@@ -311,11 +287,8 @@ export default function CreatePosts({ posts, setPosts }: Props) {
             </div>
           )}
 
-          {/* Toolbar cho các hành động */}
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            {/* Các nút thêm file và emoji */}
             <div className="flex items-center gap-2">
-              {/* Nút upload ảnh (dùng label) */}
               <label
                 htmlFor="image-upload"
                 className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
@@ -331,8 +304,6 @@ export default function CreatePosts({ posts, setPosts }: Props) {
                 className="hidden"
                 disabled={!!videoPreview}
               />
-
-              {/* Nút upload video (dùng label) */}
               <label
                 htmlFor="video-upload"
                 className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-violet-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
@@ -348,8 +319,6 @@ export default function CreatePosts({ posts, setPosts }: Props) {
                 className="hidden"
                 disabled={!!imagePreview}
               />
-
-              {/* Nút Emoji */}
               <div className="relative">
                 <button
                   type="button"
@@ -360,7 +329,6 @@ export default function CreatePosts({ posts, setPosts }: Props) {
                   <span>Cảm xúc</span>
                 </button>
                 {showEmojiPicker && (
-                  // Đẩy picker lên trên (bottom-full) và sang trái 1 chút (right-0 hoặc điều chỉnh)
                   <div className="absolute z-10 bottom-full mb-2 right-0 sm:right-auto sm:left-0">
                     <EmojiPicker
                       onEmojiClick={onEmojiClick}
@@ -387,7 +355,6 @@ export default function CreatePosts({ posts, setPosts }: Props) {
             </div>
           </div>
 
-          {/* Nút Đăng bài */}
           <button
             type="submit"
             disabled={loading}
@@ -395,7 +362,6 @@ export default function CreatePosts({ posts, setPosts }: Props) {
           >
             {loading ? "Đang xử lý..." : "Đăng bài"}
           </button>
-
           {message && (
             <p
               className={`text-sm mt-3 text-center ${
@@ -406,7 +372,6 @@ export default function CreatePosts({ posts, setPosts }: Props) {
             </p>
           )}
         </form>
-      )}
     </div>
   );
 }
