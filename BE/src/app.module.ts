@@ -13,11 +13,13 @@ import { MessagesModule } from './messages/messages.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { CallModule } from './call/call.module';
 import { FriendsModule } from './friends/friends.module';
+import { GroupModule } from './group/group.module';
+import { GroupMemberModule } from './group-member/group-member.module';
 
 
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule,],
+  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule,],
   providers: [
     {
       provide: APP_GUARD,

@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
+
 
 @Entity('users')
 export class User {
@@ -53,4 +54,5 @@ export class User {
   @ApiProperty({ description: 'User last update date' })
   @UpdateDateColumn()
   updatedAt: Date;
+
 }
