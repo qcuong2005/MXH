@@ -28,12 +28,12 @@ const FriendRequests = ({
   
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Friend Requests</h2>
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Friend Requests</h2>
       {Array.isArray(friendRequests) && friendRequests.length > 0 ? (
         friendRequests.map((request) => (
           <div
             key={request.id}
-            className="bg-white rounded-lg p-4 border border-gray-200"
+            className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -43,9 +43,9 @@ const FriendRequests = ({
                   className="w-12 h-12 rounded-full object-cover"
                 />
                 <div>
-                  <h3 className="font-semibold text-gray-900">{request.name}</h3>
-                  <p className="text-sm text-gray-500">{request.username}</p>
-                  <p className="text-xs text-gray-400">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{request.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{request.username}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {request.mutualFriends} mutual friends
                   </p>
                 </div>
@@ -59,7 +59,7 @@ const FriendRequests = ({
                 </button>
                 <button
                   onClick={() => handleRejectRequest(request.id)}
-                  className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -68,7 +68,7 @@ const FriendRequests = ({
           </div>
         ))
       ) : (
-        <p className="text-gray-500">No friend requests.</p>
+        <p className="text-gray-500 dark:text-gray-400">No friend requests.</p>
       )}
     </div>
   );

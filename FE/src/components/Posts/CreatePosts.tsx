@@ -254,10 +254,10 @@ export default function CreatePosts({ posts, setPosts }: Props) {
         // Giảm padding một chút để gọn hơn
         <form
           onSubmit={handleSubmit}
-          className="bg-white p-4 border rounded-2xl shadow-sm mt-4"
+          className="bg-white p-4 border rounded-2xl shadow-sm mt-4 dark:bg-gray-800 dark:border-gray-700"
         >
           {/* Giảm kích thước font title */}
-          <h2 className="text-md font-semibold text-gray-700 mb-3">
+          <h2 className="text-md font-semibold text-gray-700 mb-3 dark:text-gray-200">
             Tạo bài viết mới
           </h2>
 
@@ -269,13 +269,13 @@ export default function CreatePosts({ posts, setPosts }: Props) {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={3} // Giảm chiều cao mặc định
-              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none" // Bỏ pr-10
+              className="w-full border rounded-lg px-3 py-2 mb-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700" // Bỏ pr-10
             />
           </div>
 
           {/* Hiển thị Preview */}
           {(imagePreview || videoPreview) && (
-            <div className="mb-3 relative max-h-80 overflow-hidden rounded-lg border">
+            <div className="mb-3 relative max-h-80 overflow-hidden rounded-lg border dark:border-gray-700">
               {imagePreview && (
                 <>
                   <img
@@ -318,7 +318,7 @@ export default function CreatePosts({ posts, setPosts }: Props) {
               {/* Nút upload ảnh (dùng label) */}
               <label
                 htmlFor="image-upload"
-                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 <Image size={18} className="text-blue-500" />
                 <span>Ảnh</span>
@@ -335,7 +335,7 @@ export default function CreatePosts({ posts, setPosts }: Props) {
               {/* Nút upload video (dùng label) */}
               <label
                 htmlFor="video-upload"
-                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-violet-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-violet-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 <Video size={18} className="text-violet-500" />
                 <span>Video</span>
@@ -354,7 +354,7 @@ export default function CreatePosts({ posts, setPosts }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowEmojiPicker((prev) => !prev)}
-                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-yellow-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-yellow-600 cursor-pointer p-2 rounded-lg hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   <Smile size={18} className="text-yellow-500" />
                   <span>Cảm xúc</span>
@@ -378,7 +378,7 @@ export default function CreatePosts({ posts, setPosts }: Props) {
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value)}
                 // Style lại cho gọn hơn
-                className="text-sm border rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 hover:bg-gray-100"
+                className="text-sm border rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
               >
                 <option value="public">Công khai</option>
                 <option value="friends">Bạn bè</option>

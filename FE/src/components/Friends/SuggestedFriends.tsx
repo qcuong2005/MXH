@@ -61,14 +61,14 @@ const SuggestedFriends = ({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">Suggestions</h2>
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Suggestions</h2>
       {Array.isArray(suggestedFriends) && suggestedFriends.length > 0 ? (
         suggestedFriends.map((user) => {
           const isPending = pendingRequests.includes(user.id);
           return (
             <div
               key={user.id}
-              className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm flex items-center justify-between"
+              className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between"
             >
               <div className="flex items-center space-x-4">
                 <img
@@ -77,9 +77,9 @@ const SuggestedFriends = ({
                   className="w-14 h-14 rounded-full object-cover"
                 />
                 <div>
-                  <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                  <p className="text-sm text-gray-500">{user.username}</p>
-                  <p className="text-xs text-gray-400">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{user.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{user.username}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {user.mutualFriends} mutual friends
                   </p>
                 </div>
@@ -94,7 +94,7 @@ const SuggestedFriends = ({
                   }
                   className={`p-2 rounded-lg transition-colors ${
                     isPending
-                      ? "bg-gray-800 text-white hover:bg-gray-700"
+                      ? "bg-gray-800 text-white hover:bg-gray-700 dark:hover:bg-gray-600"
                       : "bg-blue-500 text-white hover:bg-blue-600"
                   }`}
                   aria-label={isPending ? "Cancel Request" : "Add Friend"}
@@ -110,7 +110,7 @@ const SuggestedFriends = ({
           );
         })
       ) : (
-        <p className="text-gray-500">No new suggestions.</p>
+        <p className="text-gray-500 dark:text-gray-400">No new suggestions.</p>
       )}
     </div>
   );

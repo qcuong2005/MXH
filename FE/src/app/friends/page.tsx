@@ -181,7 +181,7 @@ export default function FriendsPage() {
 
   // Return JSX (Giữ nguyên)
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
@@ -189,8 +189,8 @@ export default function FriendsPage() {
           <div className="max-w-4xl mx-auto p-4">
             {/* ... (Toàn bộ UI của bạn được giữ nguyên) ... */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Friends</h1>
-              <p className="text-gray-600">Connect with people you know</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Friends</h1>
+              <p className="text-gray-600 dark:text-gray-400">Connect with people you know</p>
             </div>
             
             <div className="mb-6">
@@ -199,7 +199,7 @@ export default function FriendsPage() {
                 <input
                   type="text"
                   placeholder="Search friends..."
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   value={searchQuery}
                   onChange={handleSearchChange}
                 />
@@ -207,7 +207,7 @@ export default function FriendsPage() {
             </div>
             
             <div className="mb-6">
-              <div className="border-b border-gray-200">
+              <div className="border-b border-gray-200 dark:border-gray-800">
                 <nav className="-mb-px flex space-x-8">
                   {[
                     { id: "all", label: "All Friends", count: filteredFriends.length },
@@ -219,8 +219,8 @@ export default function FriendsPage() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
                         activeTab === tab.id
-                          ? "border-blue-500 text-blue-600"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                          ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                          : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-700"
                       }`}
                     >
                       {tab.label} ({tab.count})
