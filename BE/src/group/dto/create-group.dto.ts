@@ -1,3 +1,5 @@
+// File: group/dto/create-group.dto.ts
+
 import {
   IsString,
   IsNotEmpty,
@@ -11,69 +13,62 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer'; // 👈 1. IMPORT TRANSFORM
 
 export class CreateGroupDto {
-  /**
-   * Tên của nhóm chat. Đây là trường bắt buộc.
-   * @example 'Nhóm Lập Trình viên NestJS'
-   */
-  @ApiProperty({
-    description: 'Tên của nhóm chat, là trường bắt buộc',
-    example: 'Nhóm Lập Trình viên NestJS',
-  })
+  // (name, description, cover_image - Giữ nguyên, không đổi)
+  @ApiProperty({ /* ... */ })
   @IsString({ message: 'Tên nhóm phải là một chuỗi' })
   @IsNotEmpty({ message: 'Tên nhóm không được để trống' })
   @MinLength(3, { message: 'Tên nhóm phải có ít nhất 3 ký tự' })
   @MaxLength(250, { message: 'Tên nhóm không được vượt quá 250 ký tự' })
   name: string;
 
-  /**
-   * Mô tả tùy chọn cho nhóm.
-   * @example 'Đây là nơi chúng ta thảo luận về dự án mới.'
-   */
-  @ApiPropertyOptional({
-    description: 'Mô tả chi tiết về nhóm (không bắt buộc)',
-    example: 'Đây là nơi chúng ta thảo luận về dự án mới.',
-  })
-  @IsOptional() // Đánh dấu là không bắt buộc
+  @ApiPropertyOptional({ /* ... */ })
+  @IsOptional()
   @IsString()
   @MaxLength(1000)
   description: string;
 
-  /**
-   * URL ảnh bìa tùy chọn cho nhóm.
-   * @example 'https://example.com/images/cover.png'
-   */
-  @ApiPropertyOptional({
-    description: 'URL của ảnh bìa nhóm (không bắt buộc)',
-    example: 'https://example.com/images/cover.png',
-  })
+  @ApiPropertyOptional({ /* ... */ })
   @IsOptional()
-  @IsUrl({}, { message: 'Ảnh bìa phải là một URL hợp lệ' })
+  @IsString() // 👈 Sửa: Chỉ cần IsString() vì URL sẽ được controller xử lý
   @MaxLength(500)
   cover_image: string;
 
+  
   /**
-   * Mảng các ID của thành viên được mời khi tạo nhóm.
-   * (Lưu ý: người tạo nhóm sẽ tự động được thêm vào)
-   * @example [2, 3, 5]
+   * (ĐÃ SỬA)
+   * Mảng các ID của thành viên
    */
-  @ApiPropertyOptional({
-    description: 'Mảng chứa ID của các thành viên được thêm vào nhóm ngay lúc tạo',
-    example: [2, 3, 5],
-  })
+  @ApiPropertyOptional({ /* ... */ })
   @IsOptional()
-  @IsArray({ message: 'Danh sách thành viên phải là một mảng' })
+  // 2. (FIX) Thêm @Transform để chuyển "2,3,4" -> [2, 3, 4]
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.split(',').map(Number); // Chuyển string "2,3,4"
+    }
+    if (Array.isArray(value)) {
+      return value.map(Number); // Chuyển mảng ["2", "3"]
+    }
+    return value;
+  })
+  @IsArray()
   @ArrayMinSize(1, { message: 'Bạn phải mời ít nhất 1 người vào nhóm' })
   @IsNumber({}, { each: true, message: 'Mỗi ID thành viên phải là một con số' })
   member_ids: number[];
 
 
-  @ApiPropertyOptional({
-    description: 'Bật chế độ kiểm duyệt (chỉ admin được thêm thành viên)',
-    default: false,
-  })
+  /**
+   * (ĐÃ SỬA)
+   * Chế độ kiểm duyệt
+   */
+  @ApiPropertyOptional({ /* ... */ })
   @IsOptional()
-  @IsBoolean()
+  // 3. (FIX) Thêm @Transform để chuyển "true" -> true
+  @Transform(({ value }) => {
+    return value === 'true' || value === true;
+  })
+  @IsBoolean({ message: 'moderation must be a boolean value' })
   moderation: boolean;
 }

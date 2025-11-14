@@ -92,3 +92,41 @@ export interface Friend {
   friendId: number;    // user bên kia
   status: FriendStatus;
 }
+
+
+export type GroupMemberRole = "admin" | "member";
+export interface Group {
+  id: number;
+  name: string;
+  description?: string;
+  cover_image?: string;
+  creator_id: number;
+  moderation: boolean;
+  created_at: string;
+  // (Bạn có thể thêm 'members' hoặc 'messages' nếu API trả về)
+}
+
+export interface GroupMember {
+  id: number;
+  group_id: number;
+  user_id: number;
+  role: GroupMemberRole;
+  user?: User; // Tùy chọn, nếu API getGroupMembersApi có 'relations'
+}
+
+export interface CreateGroupDto {
+  name: string;
+  member_ids: number[];
+  moderation: boolean;
+  description?: string;
+  cover_image?: string;
+}
+export type FormattedConversation = (Group | User) & {
+  isGroup: boolean;
+  uniqueId: string; // e.g., 'group-1' hoặc 'user-1'
+  lastMessage?: string;
+  updatedAt?: string;
+  unreadCount?: number;
+  avatar?: string; // Unified: user.avatar || group.cover_image
+  status?: string; // Default 'offline' cho group
+};

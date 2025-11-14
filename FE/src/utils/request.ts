@@ -57,24 +57,51 @@ export const post = async <T>(
   return handleResponse<T>(response);
 };
 
-
-export const del = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
+type FetchOptionsWithData = {
+  headers?: Record<string, string>;
+  data?: any; // 👈 1. Chấp nhận 'data' (giống Axios)
+};
+export const del = async <T>(
+  path: string,
+  options?: FetchOptionsWithData // 👈 2. Dùng type mới
+): Promise<T> => {
   const response = await fetch(`${API_DOMAIN}${path}`, {
     method: "DELETE",
-    ...options,
+    headers: {
+      // Headers mặc định
+      Accept: "application/json",
+      "Content-Type": "application/json", // Cần cho delete có body
+      // 3. (FIX) Gộp các headers từ 'options'
+      ...(options?.headers), // Dòng này sẽ thêm 'Authorization' của bạn
+    },
+    // 4. (FIX) Kiểm tra xem có 'data' không và gán nó vào 'body'
+    body: options?.data ? JSON.stringify(options.data) : undefined,
   });
   return handleResponse<T>(response);
 };
 
 
-export const patch = async <T>(path: string, options: FetchOptions): Promise<T> => {
+// Trong file: @/utils/request.ts
+
+
+
+// Thay thế hàm patch cũ của bạn bằng hàm này
+export const patch = async <T>(
+  path: string,
+  body: any, // 👈 1. Nhận 'body' làm tham số thứ hai
+  options?: FetchOptions // 👈 2. Nhận 'options' làm tham số thứ ba
+): Promise<T> => {
   const response = await fetch(`${API_DOMAIN}${path}`, {
     method: "PATCH",
     headers: {
+      // Headers mặc định
       Accept: "application/json",
       "Content-Type": "application/json",
+      // 3. (FIX) Gộp các headers từ 'options'
+      ...(options?.headers), // Dòng này sẽ thêm 'Authorization' của bạn
     },
-    body: JSON.stringify(options),
+    // 4. (FIX) Stringify 'body' (tham số thứ 2)
+    body: JSON.stringify(body),
   });
   return handleResponse<T>(response);
 };
