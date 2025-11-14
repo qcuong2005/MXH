@@ -3,14 +3,12 @@
 import { fetchAPI } from "@/lib/api";
 import {
   Home,
-  User,
+  UserCircle,
   Settings,
   LogOut,
   Users,
-  MessageCircle,
+  MessageSquare,
   Bookmark,
-  PanelLeftClose,
-  PanelRightClose,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -20,10 +18,10 @@ import anhmacdinh from "../../image/anhmacdinh.jpg";
 
 const navigation = [
   { name: "Home", icon: Home, href: "/", notifications: 0 },
-  { name: "Profile", icon: User, href: "/profile", notifications: 0 },
+  { name: "Profile", icon: UserCircle, href: "/profile", notifications: 0 },
   {
     name: "Messages",
-    icon: MessageCircle,
+    icon: MessageSquare,
     href: "/messages",
     notifications: 3,
   },
@@ -54,47 +52,33 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside
-        className={`hidden lg:flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ${
-          collapsed ? "w-20" : "w-64"
-        }`}
-      >
-        {/* Toggle Button */}
-        <div className="p-3 flex justify-end">
-          <button
-            onClick={() => setCollapsed((c) => !c)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all duration-200 hover:scale-110 hover:rotate-180"
-            aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-          >
-            {collapsed ? <PanelRightClose className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-          </button>
-        </div>
+      <aside className="hidden lg:flex w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col">
         {/* User Profile Section */}
-        <div className={`p-6 border-b border-gray-200 dark:border-gray-800 ${collapsed ? "px-3" : ""}`}>
-          <div className={`flex items-center ${collapsed ? "justify-center" : "space-x-3"}`}>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+          <div className="flex items-center space-x-3">
             <a href="/profile" >
             <Image
               src={user?.avatar || anhmacdinh.src}
               alt="avatar"
               width={48}
               height={48}
-              className={`w-12 h-12 rounded-full object-cover border ${collapsed ? "mx-auto" : ""}`}
+              className="w-12 h-12 rounded-full object-cover border"
             />
             </a>
-            {!collapsed && (<div>
+            <div>
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                 {user?.fullName || "Ẩn danh"}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 @{user?.email || "no-email"}
               </p>
-            </div>)}
+            </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 p-3">
+          <ul className="space-y-1.5">
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -103,26 +87,19 @@ export default function Sidebar() {
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
                       isActive
-                        ? "bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/20 text-primary-700 dark:text-primary-300 border-r-2 border-primary-600 shadow-sm"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:scale-[1.02]"
+                        ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-r-2 border-primary-600"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     }`}
                   >
-                    <div className={`flex items-center ${collapsed ? "" : "space-x-3"}`}>
-                      <div className={`relative ${collapsed ? "mx-auto" : ""}`}>
-                        <Icon className="w-5 h-5" />
-                        {item.notifications > 0 && collapsed && (
-                          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-semibold shadow-sm">
-                            {item.notifications > 9 ? "9" : item.notifications}
-                          </span>
-                        )}
-                      </div>
-                      {!collapsed && <span className="font-medium">{item.name}</span>}
+                    <div className="flex items-center space-x-3">
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium">{item.name}</span>
                     </div>
-                    {item.notifications > 0 && !collapsed && (
-                      <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center font-semibold shadow-sm">
-                        {item.notifications > 9 ? "9+" : item.notifications}
+                    {item.notifications > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                        {item.notifications}
                       </span>
                     )}
                   </Link>

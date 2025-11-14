@@ -138,7 +138,7 @@ export default function Feed() {
 
   // 🧠 Hiển thị
   return (
-    <div className="mx-auto px-3 sm:px-6 lg:px-10 py-6 w-full max-w-[900px] xl:max-w-[1100px]">
+    <div className="mx-auto px-3 sm:px-6 lg:px-10 pt-2 pb-6 w-full max-w-[900px] xl:max-w-[1100px]">
       <CreatePosts posts={posts} setPosts={setPosts} />
 
       {posts.length === 0 && !loading ? (
