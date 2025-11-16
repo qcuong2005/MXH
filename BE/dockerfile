@@ -1,0 +1,23 @@
+# Chọn base image cho Node.js v22.15.10
+FROM node:22
+
+# Tạo thư mục làm việc trong container
+WORKDIR /app
+
+# Copy package.json và package-lock.json vào container
+COPY package*.json ./
+
+# Cài đặt dependencies
+RUN npm install
+
+# Copy toàn bộ mã nguồn vào container
+COPY . .
+
+# Build ứng dụng NestJS (nếu có thể)
+RUN npm run build
+
+# Mở port 5000
+EXPOSE 5000
+
+# Lệnh để chạy ứng dụng
+CMD ["npm", "run", "start:prod"]

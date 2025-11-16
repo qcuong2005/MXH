@@ -31,7 +31,6 @@ export class Message {
   reply_to?: number; // ID của tin nhắn đang được trả lời
 
 
-    // Thêm trường reply_to để lưu ID của tin nhắn trả lời
   @Column({ nullable: true })
   reply_to?: number; // ID của tin nhắn đang được trả lời
 
