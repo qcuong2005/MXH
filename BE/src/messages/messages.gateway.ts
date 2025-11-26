@@ -26,7 +26,6 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
   handleConnection(client: Socket) {
     // Gán userId tạm là null khi mới kết nối
     client.data.userId = null; 
-    console.log(`🔌 Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
@@ -34,7 +33,6 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     // Nếu user này chưa bao giờ "join" (chưa có userId) thì không làm gì
     if (!userId) {
-      console.log(`❌ Client (chưa join) disconnected: ${client.id}`);
       return;
     }
 
@@ -55,7 +53,6 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
         console.log(`⚫ User ${userId} offline (kết nối cuối cùng đã đóng)`);
       }
     }
-    console.log(`❌ Client disconnected: ${client.id} (của User ${userId})`);
   }
 
   // SỬA: Logic join
@@ -75,8 +72,6 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
     // Thêm socket mới vào mảng và cập nhật Map
     currentSockets.push(client.id);
     this.users.set(userId, currentSockets);
-    
-    console.log(`👤 User ${userId} joined (socket ${client.id}). Tổng kết nối: ${currentSockets.length}`);
   }
 
   // ✅ Khi gửi tin nhắn

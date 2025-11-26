@@ -13,6 +13,7 @@ import {
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import IncomingCallModal from "@/components/Chat/IncomingCallModal";
 import CallPage from "@/components/Chat/Call";
+import { getGroupMessagesApi } from "@/services/group";
 
 interface ChatUser {
   id: number;
@@ -24,6 +25,7 @@ interface ChatUser {
   unreadCount?: number;
   lastMessageTime?: string;
   isUnread?: boolean;
+  isGroup?: boolean;
 }
 
 export default function MessagesPage() {
@@ -42,13 +44,13 @@ export default function MessagesPage() {
   const [isMakingCall, setIsMakingCall] = useState(false);
   const [activeCallDetails, setActiveCallDetails] = useState<any>(null);
 
-  // ✅ Helpers: Persist per-user data (lastMessage, unreadCount, lastMessageTime)
+  // ✅ Helpers: Persist per-user data
   const saveUserData = (userId: number, data: { lastMessage?: string; unreadCount?: number; lastMessageTime?: string }) => {
     const key = `chatUserData_${userId}`;
     const existing = loadUserData(userId);
-    const updated = { 
-      ...existing, 
-      ...data, 
+    const updated = {
+      ...existing,
+      ...data,
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(key, JSON.stringify(updated));
@@ -60,12 +62,11 @@ export default function MessagesPage() {
     return saved ? JSON.parse(saved) : {};
   };
 
-  // ✅ Merge: Ưu tiên local lastMessage nếu có (không rỗng) và API rỗng, hoặc localTime > apiTime
+  // ✅ Merge: Ưu tiên local lastMessage
   const mergeUserData = (apiUser: ChatUser, localData: Partial<ChatUser> & { updatedAt?: string }) => {
     const merged: ChatUser = { ...apiUser };
     let useLocalMessage = false;
 
-    // Nếu API không có lastMessageTime hoặc local mới hơn → ưu tiên local
     if (!apiUser.lastMessageTime || !localData.updatedAt) {
       useLocalMessage = !!localData.lastMessage?.trim();
     } else {
@@ -76,8 +77,8 @@ export default function MessagesPage() {
       }
     }
 
-    merged.lastMessage = useLocalMessage 
-      ? localData.lastMessage 
+    merged.lastMessage = useLocalMessage
+      ? localData.lastMessage
       : (apiUser.lastMessage || localData.lastMessage);
 
     merged.unreadCount = apiUser.unreadCount ?? localData.unreadCount ?? 0;
@@ -86,7 +87,7 @@ export default function MessagesPage() {
     return merged;
   };
 
-  // ✅ Helper: Lưu/load userOrder từ localStorage
+  // ✅ Helper: Lưu/load userOrder
   const saveUserOrder = (order: number[]) => {
     localStorage.setItem("chatUserOrder", JSON.stringify(order));
   };
@@ -95,13 +96,13 @@ export default function MessagesPage() {
     return saved ? JSON.parse(saved) : [];
   };
 
-  // ✅ Lấy user từ localStorage
+  // ✅ Lấy user hiện tại
   useEffect(() => {
     const token = localStorage.getItem("token");
     const id = localStorage.getItem("userId");
     const avatar = localStorage.getItem("avatar");
     const name = localStorage.getItem("username");
-    
+
     if (token && id) {
       setCurrentUser({
         id: Number(id),
@@ -110,11 +111,10 @@ export default function MessagesPage() {
         name: name || "User",
       });
     }
-    // ✅ Load userOrder từ localStorage khi init
     setUserOrder(loadUserOrder());
   }, []);
 
-  // ✅ Lấy danh sách bạn bè + Merge với local data để persist lastMessage/unread
+  // ✅ Lấy danh sách bạn bè / nhóm
   useEffect(() => {
     if (!currentUser?.token) return;
     fetchAPI("/users", {
@@ -147,41 +147,34 @@ export default function MessagesPage() {
       }
       setUsers(sortedUsers);
     });
-  }, [currentUser]); // Chỉ deps currentUser
+  }, [currentUser]);
 
-  // ✅ NEW: Auto-select chat từ localStorage khi users load (sau khi click Message từ AllFriends)
+  // ✅ Auto-select chat từ localStorage
   useEffect(() => {
-    if (users.length === 0) return; // Chờ users load xong
+    if (users.length === 0) return;
 
     const selectedFriendIdStr = localStorage.getItem("selectedFriendId");
-    const selectedConversationIdStr = localStorage.getItem("selectedConversationId");
 
     if (selectedFriendIdStr) {
       const selectedFriendId = Number(selectedFriendIdStr);
-      // Tìm user tương ứng trong users
       const targetUser = users.find((u: ChatUser) => u.id === selectedFriendId);
       if (targetUser) {
-        // Set selectedChat (sẽ trigger load messages)
         setSelectedChat(targetUser);
-        // ✅ Optional: Đẩy lên đầu order nếu chưa (nhưng thường đã có từ AllFriends)
         if (!userOrder.includes(selectedFriendId)) {
           const newOrder = [selectedFriendId, ...userOrder];
           setUserOrder(newOrder);
           saveUserOrder(newOrder);
         }
-        console.log("✅ Auto-selected chat for user:", selectedFriendId);
       }
-      // ✅ Clear localStorage sau khi set (tránh set lại lần sau khi refresh/reload trang)
       localStorage.removeItem("selectedFriendId");
       localStorage.removeItem("selectedConversationId");
     }
-  }, [users]); // Deps: users (chạy sau khi users load)
+  }, [users]);
 
-  // ✅ Update status online/offline (không ảnh hưởng persist message)
+  // ✅ Update status online/offline
   useEffect(() => {
     if (!socket || !currentUser?.id) return;
     const handleStatusUpdate = (data: { userId: number; status: "online" | "offline" }) => {
-      console.log("📡 Status update:", data);
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === data.userId ? { ...user, status: data.status } : user
@@ -197,18 +190,13 @@ export default function MessagesPage() {
     };
   }, [socket, currentUser?.id, selectedChat?.id]);
 
-  // ✅ Mark as read khi mở chat (update state + save local) – KHÔNG đẩy lên đầu, chỉ mark read
+  // ✅ Mark as read
   const markAsRead = async (convId: number) => {
-    if (!currentUser?.token || !convId) {
-      console.warn("Mark read skipped: Missing token or conversation ID.");
-      return;
-    }
+    if (!currentUser?.token || !convId) return;
     try {
       if (socket) {
         socket.emit("markRead", { conversation_id: convId, user_id: currentUser.id });
-        console.log("📖 Emitted markRead via socket for conv:", convId);
       }
-      // ✅ Update state: reset unread cho selectedChat (KHÔNG update lastMessage hoặc order)
       const targetUserId = selectedChat?.id;
       if (!targetUserId) return;
       setUsers((prevUsers) =>
@@ -218,15 +206,13 @@ export default function MessagesPage() {
             : u
         )
       );
-      // ✅ Save local: chỉ unread=0, không chạm lastMessage
       saveUserData(targetUserId, { unreadCount: 0 });
-      console.log("✅ Marked as read for conv:", convId);
     } catch (error) {
       console.error("❌ Mark read failed:", error);
     }
   };
 
-  // ✅ Load tin nhắn khi chọn user (với resolve replies + mark read) – KHÔNG sync lastMessage vào sidebar
+  // ✅ Resolve replies Helper
   const resolveReplies = (messages: any[]) => {
     const messageMap = new Map(messages.map((m: any) => [m.id, m]));
     return messages.map((msg: any) => {
@@ -237,7 +223,6 @@ export default function MessagesPage() {
         if (originalMessage) {
           finalMsg.reply_to = originalMessage;
         } else {
-          console.warn(`Không tìm thấy tin nhắn gốc (ID: ${replyId}) khi load.`);
           finalMsg.reply_to = null;
         }
       }
@@ -245,34 +230,110 @@ export default function MessagesPage() {
     });
   };
 
+  // ✅ LOGIC JOIN/LEAVE GROUP ROOM
   useEffect(() => {
-    if (!selectedChat || !currentUser?.token) return;
-    const loadConversation = async () => {
-      try {
-        const conv = await ensureConversation(currentUser.token, selectedChat.id);
-        setConversationId(conv.id);
-        await markAsRead(conv.id); // Chỉ mark read, không sync lastMessage
-        const msgs = await getMessagesByConversation(currentUser.token, conv.id);
-        const resolvedMsgs = resolveReplies(msgs || []);
-        setMessagesData(resolvedMsgs);
-      } catch (error) {
-        console.error("Load conversation failed:", error);
+    if (!socket || !selectedChat) return;
+
+    if (selectedChat.isGroup) {
+      console.log(`🔌 Joining Group Room: ${selectedChat.id}`);
+      socket.emit("joinGroup", selectedChat.id);
+    }
+
+    return () => {
+      if (selectedChat.isGroup) {
+        console.log(`🔌 Leaving Group Room: ${selectedChat.id}`);
+        socket.emit("leaveGroup", selectedChat.id);
       }
     };
-    loadConversation();
+  }, [socket, selectedChat]);
+
+  // ✅ LOAD DỮ LIỆU TIN NHẮN (Group hoặc User)
+  useEffect(() => {
+    if (!selectedChat || !currentUser?.token) return;
+
+    const loadChatData = async () => {
+      try {
+        if (selectedChat.isGroup) {
+          // --- Load Group ---
+          const groupMsgs = await getGroupMessagesApi(currentUser.token, selectedChat.id);
+          const resolvedMsgs = resolveReplies(groupMsgs || []);
+          setMessagesData(resolvedMsgs);
+          setConversationId(null); // Group không có ConversationID kiểu 1-1
+        } else {
+          // --- Load 1-1 ---
+          const conv = await ensureConversation(currentUser.token, selectedChat.id);
+          setConversationId(conv.id);
+          await markAsRead(conv.id);
+          const msgs = await getMessagesByConversation(currentUser.token, conv.id);
+          const resolvedMsgs = resolveReplies(msgs || []);
+          setMessagesData(resolvedMsgs);
+        }
+      } catch (error) {
+        console.error("Load chat failed:", error);
+      }
+    };
+    loadChatData();
   }, [selectedChat, currentUser]);
 
-  // ✅ JOIN ROOM
+  // ✅ REAL-TIME HANDLER: GROUP CHAT
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewGroupMessage = (msg: any) => {
+      // 1. Kiểm tra có đang chọn Chat không và có phải là Group không
+      if (!selectedChat || !selectedChat.isGroup) return;
+
+      // 2. Kiểm tra ID của Group (quan trọng để tránh nhận nhầm tin)
+      // Backend có thể trả về 'group_id' hoặc 'conversation_id', dùng Number() để an toàn
+      const incomingGroupId = msg.group_id || msg.conversation_id;
+      if (Number(incomingGroupId) !== Number(selectedChat.id)) {
+        return; // Bỏ qua nếu tin nhắn không thuộc group đang mở
+      }
+
+      console.log("📩 New Group Message received:", msg);
+
+      setMessagesData((prevMessages: any[]) => {
+        // 3. Kiểm tra trùng lặp (Deduplication)
+        const exists = prevMessages.some((m: any) => m.id === msg.id);
+        if (exists) return prevMessages;
+
+        // 4. Xử lý Optimistic UI: Nếu là tin mình gửi, thay thế tin tạm
+        if (msg.sender_id === currentUser.id) {
+          return prevMessages.map(m =>
+            (m.sender_id === currentUser.id && m.content === msg.content && Number(m.id) > 1000000000000)
+              ? msg : m
+          );
+        }
+
+        // 5. Xử lý Reply: Gắn object tin nhắn gốc vào
+        let finalMessage = { ...msg };
+        if (finalMessage.reply_to && typeof finalMessage.reply_to === 'number') {
+          const originalMsg = prevMessages.find(m => m.id === finalMessage.reply_to);
+          finalMessage.reply_to = originalMsg || null;
+        }
+
+        return [...prevMessages, finalMessage];
+      });
+    };
+
+    socket.on("newGroupMessage", handleNewGroupMessage);
+    
+    // Cleanup Listener
+    return () => {
+      socket.off("newGroupMessage", handleNewGroupMessage);
+    };
+  }, [socket, selectedChat, currentUser]);
+
+  // ✅ JOIN USER ROOM (Cho 1-1 và Call)
   useEffect(() => {
     if (socket && currentUser?.id) socket.emit("joinUser", currentUser.id);
   }, [socket, currentUser?.id]);
 
-  // ✅ Nghe incoming call (giữ nguyên)
+  // ✅ Xử lý Cuộc gọi đến
   useEffect(() => {
     if (!socket || !currentUser?.id) return;
     const handleIncomingCall = (callData: any) => {
       if (callData.receiver_id !== currentUser.id) return;
-      console.log("📞 Cuộc gọi đến:", callData);
       setIncomingCall({
         caller_id: callData.caller_id,
         caller_name: callData.caller_name,
@@ -288,14 +349,13 @@ export default function MessagesPage() {
     };
   }, [socket, currentUser?.id]);
 
+  // ✅ Callback update sidebar cho 1-1 (truyền xuống ChatWindow)
   const handleNewMessageUpdate = (targetUserId: number, messageContent: string, timestamp: string, isFromCurrentUser: boolean) => {
     setUsers((prevUsers) => {
-      // Update cho targetUserId (conversation với user này)
       const updatedUsers = prevUsers.map((u) => {
         if (u.id === targetUserId) {
           const isSelected = selectedChat?.id === targetUserId;
-          const newUnread = isSelected ? 0 : (u.unreadCount || 0) + 1; // Nếu đang mở chat, unread không tăng
-          // ✅ Prefix "Bạn:" nếu tin từ currentUser (gửi đi, hiển thị ở sidebar của sender)
+          const newUnread = isSelected ? 0 : (u.unreadCount || 0) + 1;
           const displayMessage = isFromCurrentUser ? `Bạn: ${messageContent}` : messageContent;
           const newData = {
             ...u,
@@ -304,7 +364,6 @@ export default function MessagesPage() {
             unreadCount: newUnread,
             isUnread: newUnread > 0,
           };
-          // ✅ Save local ngay (với displayMessage đã prefix)
           saveUserData(targetUserId, {
             lastMessage: displayMessage,
             unreadCount: newUnread,
@@ -315,15 +374,14 @@ export default function MessagesPage() {
         return u;
       });
 
-      // ✅ Đẩy conversation (targetUserId) lên đầu order CHỈ khi có tin mới (không khi click/load)
+      // Re-order Sidebar
       const currentOrder = prevUsers.map((u) => u.id);
       const newOrder = currentOrder.filter((id) => id !== targetUserId);
       newOrder.unshift(targetUserId);
       saveUserOrder(newOrder);
       setUserOrder(newOrder);
 
-      // Sort theo newOrder mới (đẩy lên đầu)
-      const sorted = newOrder
+      return newOrder
         .map((id: number) => updatedUsers.find((u: ChatUser) => u.id === id) as ChatUser)
         .filter(Boolean)
         .concat(
@@ -331,8 +389,6 @@ export default function MessagesPage() {
             .filter((u: ChatUser) => !newOrder.includes(u.id))
             .sort((a: ChatUser, b: ChatUser) => new Date(b.lastMessageTime || 0).getTime() - new Date(a.lastMessageTime || 0).getTime())
         );
-
-      return sorted; // Update state → sidebar re-render, conversation đẩy lên đầu + lastMessage mới + màu
     });
   };
 
@@ -368,7 +424,7 @@ export default function MessagesPage() {
                   to: incomingCall.caller_id,
                   from: currentUser.id,
                 });
-               
+
                 setActiveCallParams({
                   receiver_name: incomingCall.caller_name,
                   receiver_avatar: incomingCall.caller_avatar || anhmacdinh.src,
