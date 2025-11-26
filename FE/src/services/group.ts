@@ -6,6 +6,7 @@ import type {
   Group,
   GroupMember,
   CreateGroupDto,
+  Message, // ✅ GIỮ: Nếu cần cho sendGroupMessageApi
 } from "@/types"; // (Hãy đảm bảo đường dẫn này đúng - THÊM avatar_image vào CreateGroupDto nếu chưa có)
 
 // --- Các hàm API Service ---
@@ -46,7 +47,10 @@ export async function createGroupApi(
   });
 }
 
-// (Các hàm khác giữ nguyên - không thay đổi)
+/**
+ * Lấy danh sách nhóm của tôi
+ * (GET /groups/my-groups)
+ */
 export async function getMyGroupsApi(token: string): Promise<Group[]> {
   return await get<Group[]>("/groups/my-groups", {
     headers: {
@@ -56,6 +60,10 @@ export async function getMyGroupsApi(token: string): Promise<Group[]> {
   });
 }
 
+/**
+ * Lấy danh sách thành viên của một nhóm
+ * (GET /group-members/group/:groupId)
+ */
 export async function getGroupMembersApi(
   token: string,
   groupId: number
@@ -68,6 +76,10 @@ export async function getGroupMembersApi(
   });
 }
 
+/**
+ * Thêm thành viên vào nhóm
+ * (POST /group-members)
+ */
 export async function addGroupMemberApi(
   token: string,
   groupId: number,
@@ -86,6 +98,10 @@ export async function addGroupMemberApi(
   });
 }
 
+/**
+ * Xóa thành viên khỏi nhóm
+ * (DELETE /group-members)
+ */
 export async function removeGroupMemberApi(
   token: string,
   groupId: number,
@@ -106,6 +122,10 @@ export async function removeGroupMemberApi(
   });
 }
 
+/**
+ * Giải tán nhóm
+ * (DELETE /groups/:groupId)
+ */
 export async function dissolveGroupApi(
   token: string,
   groupId: number
@@ -118,6 +138,10 @@ export async function dissolveGroupApi(
   });
 }
 
+/**
+ * Chuyển quyền admin nhóm
+ * (PATCH /groups/:groupId/transfer-admin)
+ */
 export async function transferAdminApi(
   token: string,
   groupId: number,
@@ -133,4 +157,46 @@ export async function transferAdminApi(
       "Content-Type": "application/json",
     },
   });
-} 
+}
+
+/**
+ * Gửi tin nhắn vào nhóm (CẬP NHẬT: HỖ TRỢ FULL PAYLOAD VỚI OPTIONAL FIELDS)
+ * (POST /group-messages)
+ */
+export async function sendGroupMessageApi(
+  token: string,
+  payload: {
+    group_id: number;
+    sender_id?: number; // Optional, backend set từ JWT
+    content: string;
+    media_url?: string; // Optional
+    message_type?: string; // Default 'text'
+    reply_to?: number | null; // Optional, null/omit nếu không reply
+  }
+): Promise<Message> {
+  return await post<Message>("/group-messages", payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+/**
+ * Lấy danh sách tin nhắn của nhóm (FALLBACK LOAD)
+ * (GET /group-messages/:groupId)
+ */
+export async function getGroupMessagesApi(
+  token: string,
+  groupId: number,
+  limit?: number // Optional limit
+): Promise<Message[]> {
+  const params = limit ? `?limit=${limit}` : '';
+  return await get<Message[]>(`/group-messages/${groupId}${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+}

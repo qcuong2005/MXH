@@ -28,7 +28,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Khi client ngắt kết nối
   handleDisconnect(client: Socket) {
-    console.log(`❌ Client ngắt kết nối: ${client.id}`);
     for (const [userId, socketId] of this.connectedUsers.entries()) {
       if (socketId === client.id) {
         this.connectedUsers.delete(userId);
@@ -68,8 +67,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    console.log(`📞 Outgoing call từ ${callerId} → ${receiverId}`);
-
     const receiverSocketId = this.connectedUsers.get(receiverId);
 
     if (receiverSocketId) {
@@ -84,7 +81,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         timestamp: new Date().toISOString(),
       });
     } else {
-      console.log(`🚫 Người nhận ${receiverId} không online.`);
       // Optionally emit lại cho caller để báo lỗi
       const callerSocketId = this.connectedUsers.get(callerId);
       if (callerSocketId) {
@@ -108,7 +104,6 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleCallRejected(@MessageBody() data: { call_id?: number; to: number; from: number }) {
     const callerSocketId = this.connectedUsers.get(data.to);
     if (callerSocketId) {
-      console.log(`❌ Cuộc gọi bị từ chối: ${data.from} → ${data.to}`);
       this.server.to(callerSocketId).emit('callRejected', data);
     }
   }
