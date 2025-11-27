@@ -1,7 +1,15 @@
 "use client";
 import Image from "next/image";
 // 1. Thêm import ArrowLeft
-import { Phone, Video, MoreVertical, Send, X, Smile, ArrowLeft } from "lucide-react";
+import {
+  Phone,
+  Video,
+  MoreVertical,
+  Send,
+  X,
+  Smile,
+  ArrowLeft,
+} from "lucide-react";
 import MessagesList from "@/components/Chat/Messages";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
@@ -12,6 +20,7 @@ import IncomingCallModal from "@/components/Chat/IncomingCallModal";
 import CallPage, { ReceiverParams } from "@/components/Chat/Call";
 import { Call } from "@/types";
 import { sendGroupMessageApi } from "@/services/group";
+import GroupInfoModal from "./GroupInfoModal";
 
 const TypingIndicator = () => (
   <div className="flex items-center space-x-1">
@@ -27,7 +36,7 @@ export default function ChatWindow({
   conversationId,
   messagesData,
   setMessagesData,
-  onNewMessageUpdate, 
+  onNewMessageUpdate,
   onBack, // 2. Thêm prop onBack nhận từ cha
 }: any) {
   const { socket } = useSocket();
@@ -38,7 +47,7 @@ export default function ChatWindow({
   const [isTyping, setIsTyping] = useState(false);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
   // --- CALL STATE ---
   const [incomingCall, setIncomingCall] = useState<Call | null>(null);
   const [activeCallParams, setActiveCallParams] =
@@ -54,7 +63,7 @@ export default function ChatWindow({
       receiver_id: selectedChat.id,
     });
   };
-  
+
   useEffect(() => {
     if (!socket || !selectedChat) return;
     const handleTyping = (userId: number) => {
@@ -132,7 +141,7 @@ export default function ChatWindow({
         if (exists) return prevMessages;
         let finalMessage = { ...msg };
         const replyId = finalMessage.reply_to;
-        
+
         if (replyId) {
           let originalMessage = prevMessages.find(
             (m: any) => m.id === Number(replyId)
@@ -141,7 +150,7 @@ export default function ChatWindow({
             finalMessage.reply_to = originalMessage;
           }
         }
-       
+
         if (finalMessage.sender_id === currentUser.id) {
           return prevMessages.map((m: any) =>
             typeof m.id === "number" &&
@@ -151,7 +160,7 @@ export default function ChatWindow({
               : m
           );
         }
-        
+
         if (onNewMessageUpdate && selectedChat) {
           onNewMessageUpdate(
             selectedChat.id,
@@ -232,7 +241,9 @@ export default function ChatWindow({
   if (!selectedChat)
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
-        <span className="hidden lg:block">Chọn người để bắt đầu trò chuyện</span>
+        <span className="hidden lg:block">
+          Chọn người để bắt đầu trò chuyện
+        </span>
       </div>
     );
 
@@ -241,10 +252,9 @@ export default function ChatWindow({
       {/* Header */}
       <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
         <div className="flex items-center space-x-3">
-          
           {/* 3. NÚT BACK (Chỉ hiện trên mobile) */}
-          <button 
-            onClick={onBack} 
+          <button
+            onClick={onBack}
             className="lg:hidden p-2 -ml-2 mr-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-600 dark:text-gray-300"
           >
             <ArrowLeft size={22} />
@@ -296,9 +306,12 @@ export default function ChatWindow({
           >
             <Video className="w-4 h-4 text-gray-600 dark:text-gray-300" />
           </button>
-          <button className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200">
-            <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-          </button>
+          <button 
+           onClick={() => setShowGroupInfo(true)} // <--- THÊM SỰ KIỆN NÀY
+           className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
+         >
+           <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+         </button>
         </div>
       </div>
 
@@ -368,7 +381,7 @@ export default function ChatWindow({
           </div>
         )}
       </div>
-      
+
       {activeCallParams && currentUser && (
         <div className="absolute inset-0 z-40 bg-black/50">
           <CallPage
@@ -379,6 +392,15 @@ export default function ChatWindow({
             onHangUp={handleOnHangUp}
           />
         </div>
+      )}
+
+      {showGroupInfo && selectedChat && (
+        <GroupInfoModal 
+          isOpen={showGroupInfo}
+          onClose={() => setShowGroupInfo(false)}
+          selectedChat={selectedChat}
+          currentUser={currentUser}
+        />
       )}
     </div>
   );

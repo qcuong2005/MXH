@@ -59,6 +59,13 @@ async function bootstrap() {
   console.log(`🖼️ Static files served at: http://localhost:${port}/uploads/avatars`);
   console.log(`🖼️ Static files served at: http://localhost:${port}/uploads/posts/image`);
   console.log(`🖼️ Static files served at: http://localhost:${port}/uploads/posts/video`);
+
+
+  // console.log(`🚀 Application is running on: http://222.255.117.234/:${port}`);
+  // console.log(`📚 Swagger documentation: http://222.255.117.234/:${port}/api`);
+  // console.log(`🖼️ Static files served at: http://222.255.117.234/:${port}/uploads/avatars`);
+  // console.log(`🖼️ Static files served at: http://222.255.117.234/:${port}/uploads/posts/image`);
+  // console.log(`🖼️ Static files served at: http://222.255.117.234/:${port}/uploads/posts/video`);
 }
 
 bootstrap();

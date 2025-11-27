@@ -2,6 +2,7 @@
 import { getToken } from './auth';
 
  export const API_URL = "http://localhost:5000";
+  // export const API_URL = "http://222.255.117.234:5000";
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const token = getToken();

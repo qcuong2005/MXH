@@ -1,5 +1,5 @@
 const API_DOMAIN = "http://localhost:5000";
-
+// const API_DOMAIN = "http://222.255.117.234:5000";
 interface FetchOptions {
   [key: string]: any;
 }

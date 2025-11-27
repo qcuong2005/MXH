@@ -18,6 +18,12 @@ import { CreateFriendDto } from './dto/create-friend.dto';
     credentials: true,
   },
 })
+// @WebSocketGateway({
+//   cors: {
+//     origin: ['http:222.255.117.234:3000'],
+//     credentials: true,
+//   },
+// })
 export class FriendsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;

@@ -14,6 +14,12 @@ import { MessagesService } from './messages.service';
     credentials: true,
   },
 })
+// @WebSocketGateway({
+//   cors: {
+//     origin: ['http:222.255.117.234:3000'],
+//     credentials: true,
+//   },
+// })
 export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
