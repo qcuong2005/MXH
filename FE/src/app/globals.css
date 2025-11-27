@@ -2,195 +2,248 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================================================
+   1. BASE LAYER - CẤU HÌNH CỐT LÕI CHO MOBILE
+   ======================================================================== */
 @layer base {
   html {
-    font-family: system-ui, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; /* Tắt highlight xanh khi tap */
+    touch-action: manipulation; /* Tắt double-tap zoom */
+    -webkit-text-size-adjust: 100%; /* Chặn iOS phóng chữ khi xoay ngang */
+    scroll-behavior: smooth;
   }
 
-  /* Mobile-specific styles */
-  @media (max-width: 1023px) {
-    body {
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
+  body {
+    @apply text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900;
+    min-height: 100dvh; /* Dynamic Viewport Height: Fix lỗi thanh địa chỉ che */
+    overscroll-behavior-y: none; /* Chặn hiệu ứng kéo nảy (rubber-band) toàn trang */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-    /* Smooth scrolling for mobile */
-    html {
-      scroll-behavior: smooth;
-    }
-
-    /* Prevent zoom on input focus */
-    input,
-    textarea,
-    select {
-      font-size: 16px;
-    }
+  /* Fix lỗi input zoom trên iOS (font < 16px sẽ bị zoom) */
+  input, textarea, select {
+    font-size: 16px;
   }
 }
 
+/* ========================================================================
+   2. COMPONENTS LAYER - CÁC THÀNH PHẦN UI
+   ======================================================================== */
 @layer components {
+  /* --- A. COMMON UI ELEMENTS --- */
+  
+  /* Buttons */
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors;
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors active:scale-95 transform duration-100;
   }
-
+  
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors;
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors active:scale-95 transform duration-100;
   }
 
+  /* Inputs */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-4 py-3 text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow;
   }
 
-  .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  /* Cards */
+  .card, .mobile-post-card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4 transition-all duration-200;
+  }
+  .mobile-post-card:active {
+    @apply bg-gray-50; /* Tactile feedback */
   }
 
-  /* Facebook-like mobile styles */
+  /* --- B. NAVIGATION & LAYOUT --- */
+
+  /* 1. Mobile Bottom Nav */
   .mobile-bottom-nav {
-    backdrop-filter: blur(10px);
+    @apply fixed bottom-0 left-0 right-0 z-[50] flex justify-around items-center h-16 lg:hidden;
     background-color: rgba(255, 255, 255, 0.95);
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .dark .mobile-bottom-nav {
     background-color: rgba(17, 24, 39, 0.9);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .mobile-post-card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-3 transition-all duration-200;
+  .mobile-bottom-nav-item-active::after {
+    content: '';
+    @apply absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-4 h-0.5 bg-blue-600 rounded-full;
   }
 
-  .mobile-post-card:hover {
-    @apply shadow-md;
+  /* 2. Mobile Sidebar (Left Drawer) - ĐÃ CHỈNH SỬA THEO YÊU CẦU */
+  .mobile-sidebar {
+    /* Vị trí cố định bên trái, full chiều cao */
+    @apply fixed inset-y-0 left-0 z-[60] bg-white dark:bg-gray-900 shadow-2xl;
+    
+    /* Kích thước menu: 280px trên mobile nhỏ, 320px trên màn hình lớn hơn */
+    @apply w-[280px] sm:w-[320px];
+    
+    /* Đường viền ngăn cách bên phải */
+    @apply border-r border-gray-200 dark:border-gray-800;
+    
+    /* Hiệu ứng trượt */
+    @apply transition-transform duration-300 ease-in-out;
+    
+    /* Mặc định ẩn sang trái */
+    transform: translateX(-100%);
   }
 
-  /* Mobile touch targets */
-  @media (max-width: 1023px) {
-    .mobile-touch-target {
-      min-height: 44px;
-      min-width: 44px;
-    }
-
-    /* Better spacing for mobile */
-    .mobile-spacing {
-      @apply px-2 py-2;
-    }
-
-    /* Mobile-optimized text */
-    .mobile-text {
-      @apply text-sm leading-relaxed;
-    }
-
-    /* Mobile button styles */
-    .mobile-btn {
-      @apply py-3 px-4 rounded-xl font-medium text-base;
-    }
-
-    /* Mobile input styles */
-    .mobile-input {
-      @apply py-3 px-4 rounded-xl text-base;
-    }
+  /* Khi có class .open thì trượt ra */
+  .mobile-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* Lớp nền đen mờ phía sau */
+  .mobile-sidebar-backdrop {
+    @apply fixed inset-0 bg-black/50 z-[55] lg:hidden transition-opacity duration-300;
+    @apply opacity-0 pointer-events-none; /* Mặc định ẩn và không chặn click */
+  }
+  
+  .mobile-sidebar-backdrop.open {
+    @apply opacity-100 pointer-events-auto; /* Hiện lên và chặn click */
   }
 
-  /* Facebook-like animations */
-  .fb-fade-in {
-    animation: fbFadeIn 0.3s ease-out;
+  /* Hamburger Menu Button */
+  .hamburger {
+    @apply p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  .hamburger-open { @apply rotate-90; }
+
+  /* --- C. CHAT & MESSENGER SPECIFIC --- */
+  
+  /* Layout chính */
+  .chat-window-mobile {
+    @apply flex-1 flex flex-col h-[100dvh] lg:h-full bg-gray-50 dark:bg-gray-900 overflow-hidden;
   }
 
-  .fb-slide-up {
-    animation: fbSlideUp 0.3s ease-out;
-  }
-  /* File: globals.css (hoặc file CSS chính của bạn) 
-*/
-
-/* Định nghĩa animation "nháy" */
-@keyframes highlight {
-  from {
-    /* Bắt đầu với màu nền xanh nhạt (giống màu highlight) */
-    background-color: rgba(59, 130, 246, 0.3);
-  }
-  to {
-    /* Trở về màu nền trong suốt */
-    background-color: transparent;
-  }
-}
-/* File: globals.css (hoặc file CSS chính của bạn) */
-
-@keyframes custom-pulse {
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.typing-dot {
-  /* Áp dụng animation 'custom-pulse' */
-  animation: custom-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Áp dụng animation cho class .highlight-message */
-.highlight-message {
-  /* Chạy animation 'highlight' trong 1.5 giây */
-  animation: highlight 1.5s ease-out;
-}
-
-  @keyframes fbFadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+  /* User Sidebar (Desktop only) */
+  .chat-user-sidebar {
+    @apply hidden lg:block w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-y-auto;
   }
 
-  @keyframes fbSlideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Mobile-specific utilities */
-  .mobile-hidden {
-    @apply hidden lg:block;
-  }
-
-  .mobile-only {
-    @apply block lg:hidden;
-  }
-
-  /* Safe area for mobile devices */
-  .safe-area-top {
+  /* Chat Header (Fixed Top) */
+  .chat-header-fixed {
+    @apply fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-[40];
     padding-top: env(safe-area-inset-top);
+    height: 68px;
   }
 
-  .safe-area-bottom {
+  /* Khu vực tin nhắn (Scrollable Area) */
+  .chat-messages-area {
+    @apply flex-1 overflow-y-auto px-3 pb-32 lg:pb-6;
+    padding-top: 84px; /* 68px header + gap */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain; 
+    
+    /* Background Pattern */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f3f4f6"/><circle cx="20" cy="20" r="4" fill="%23e5e7eb"/><circle cx="80" cy="80" r="4" fill="%23e5e7eb"/></svg>');
+    background-size: 80px;
+  }
+  .dark .chat-messages-area {
+    background-color: #111827;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23111827"/><circle cx="20" cy="20" r="4" fill="%23233444"/><circle cx="80" cy="80" r="4" fill="%23233444"/></svg>');
+  }
+
+  /* Chat Input (Fixed Bottom) */
+  .chat-input-container {
+    @apply fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-[40];
     padding-bottom: env(safe-area-inset-bottom);
+    padding-top: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
-  /* Mobile scrollbar hiding */
-  .mobile-scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .chat-input-field {
+    @apply w-full px-4 py-3 pr-12 text-sm bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-900 transition-all;
   }
 
-  .mobile-scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  .chat-send-button {
+    @apply absolute right-2 bottom-2.5 p-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-all active:scale-95 shadow-lg;
+  }
+
+  /* Emoji Picker */
+  .emoji-picker-mobile {
+    @apply absolute bottom-20 left-2 right-2 z-[45] rounded-2xl overflow-hidden shadow-2xl max-h-[380px];
+  }
+
+  /* --- D. USER SIDEBAR / CONTACT LIST MOBILE --- */
+  .user-sidebar-mobile {
+    @apply w-full lg:w-80 bg-white dark:bg-gray-900 flex flex-col h-[100dvh];
+  }
+  
+  .user-sidebar-header {
+    @apply p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between sticky top-0 bg-white dark:bg-gray-900 z-[10];
+    padding-top: calc(env(safe-area-inset-top) + 8px);
+  }
+  
+  .user-search-input {
+    @apply w-full px-4 py-3 pl-10 bg-gray-100 dark:bg-gray-800 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%236b7280' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 14px center;
+  }
+
+  /* --- E. MODALS & TOASTS --- */
+  
+  /* Bottom Sheet */
+  .bottom-sheet {
+    @apply fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-xl z-[70] transform transition-transform duration-300;
+    padding-bottom: env(safe-area-inset-bottom);
+    max-height: 90dvh;
+  }
+  .bottom-sheet-handle {
+    @apply w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3;
+  }
+
+  /* Success Toast */
+  .success-toast {
+    @apply fixed top-20 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 bg-green-500 text-white rounded-full shadow-2xl;
+    animation: bounceIn 0.6s ease-out;
+  }
+  
+  /* Call Overlay */
+  .call-overlay {
+    @apply fixed inset-0 z-[90] bg-black pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)];
   }
 }
+
+/* ========================================================================
+   3. UTILITIES LAYER - ANIMATION & HELPERS
+   ======================================================================== */
 @layer utilities {
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
+  .mobile-touch-target { @apply min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer; }
+  
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  
+  .snap-x-mandatory {
+    @apply flex overflow-x-auto gap-3 px-4 pb-4;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
   }
-  .animate-float-slow {
-    animation: float 10s ease-in-out infinite;
-  }
+  .snap-center { @apply flex-shrink-0; scroll-snap-align: center; }
+
+  /* Animations */
+  .animate-message-in { animation: messageIn 0.25s ease-out; }
+  .typing-dot { animation: custom-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+/* ========================================================================
+   4. KEYFRAMES
+   ======================================================================== */
+@keyframes highlight { from { background-color: rgba(59, 130, 246, 0.3); } to { background-color: transparent; } }
+@keyframes custom-pulse { 50% { opacity: 0.5; } }
+@keyframes fbFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes messageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bounceIn {
+  0% { transform: translateY(-100px) scale(0.8); opacity: 0; }
+  60% { transform: translateY(20px) scale(1.05); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
 }

@@ -89,9 +89,6 @@ export default function MessagesList({
         // Fallback name nếu msg.sender null
         const senderName = msg.sender?.name || msg.sender?.username || "Thành viên";
 
-        // Logic hiển thị Avatar:
-        // 1. Group: Luôn hiện
-        // 2. 1-1: Cũng nên hiện avatar người kia cho đẹp (tuỳ bạn chọn)
         const shouldShowAvatarColumn = !isMine; 
 
         return (

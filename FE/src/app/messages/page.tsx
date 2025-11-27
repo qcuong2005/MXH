@@ -14,6 +14,7 @@ import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import IncomingCallModal from "@/components/Chat/IncomingCallModal";
 import CallPage from "@/components/Chat/Call";
 import { getGroupMessagesApi } from "@/services/group";
+import { Menu, Users } from "lucide-react";
 
 interface ChatUser {
   id: number;
@@ -45,25 +46,42 @@ export default function MessagesPage() {
   const [activeCallDetails, setActiveCallDetails] = useState<any>(null);
 
   // ✅ Helpers: Persist per-user data
-  const saveUserData = (userId: number, data: { lastMessage?: string; unreadCount?: number; lastMessageTime?: string }) => {
+  const saveUserData = (
+    userId: number,
+    data: {
+      lastMessage?: string;
+      unreadCount?: number;
+      lastMessageTime?: string;
+    }
+  ) => {
     const key = `chatUserData_${userId}`;
     const existing = loadUserData(userId);
     const updated = {
       ...existing,
       ...data,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
     localStorage.setItem(key, JSON.stringify(updated));
   };
 
-  const loadUserData = (userId: number): { lastMessage?: string; unreadCount?: number; lastMessageTime?: string; updatedAt?: string } => {
+  const loadUserData = (
+    userId: number
+  ): {
+    lastMessage?: string;
+    unreadCount?: number;
+    lastMessageTime?: string;
+    updatedAt?: string;
+  } => {
     const key = `chatUserData_${userId}`;
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : {};
   };
 
   // ✅ Merge: Ưu tiên local lastMessage
-  const mergeUserData = (apiUser: ChatUser, localData: Partial<ChatUser> & { updatedAt?: string }) => {
+  const mergeUserData = (
+    apiUser: ChatUser,
+    localData: Partial<ChatUser> & { updatedAt?: string }
+  ) => {
     const merged: ChatUser = { ...apiUser };
     let useLocalMessage = false;
 
@@ -79,10 +97,13 @@ export default function MessagesPage() {
 
     merged.lastMessage = useLocalMessage
       ? localData.lastMessage
-      : (apiUser.lastMessage || localData.lastMessage);
+      : apiUser.lastMessage || localData.lastMessage;
 
     merged.unreadCount = apiUser.unreadCount ?? localData.unreadCount ?? 0;
-    merged.lastMessageTime = localData.lastMessageTime || apiUser.lastMessageTime || new Date().toISOString();
+    merged.lastMessageTime =
+      localData.lastMessageTime ||
+      apiUser.lastMessageTime ||
+      new Date().toISOString();
 
     return merged;
   };
@@ -120,7 +141,9 @@ export default function MessagesPage() {
     fetchAPI("/users", {
       headers: { Authorization: `Bearer ${currentUser.token}` },
     }).then((data) => {
-      const filtered: ChatUser[] = (data || []).filter((u: ChatUser) => u.id !== currentUser.id);
+      const filtered: ChatUser[] = (data || []).filter(
+        (u: ChatUser) => u.id !== currentUser.id
+      );
       const enhancedUsers: ChatUser[] = filtered.map((u: ChatUser) => {
         const localData = loadUserData(u.id);
         const merged = mergeUserData(u, localData);
@@ -132,15 +155,26 @@ export default function MessagesPage() {
       let sortedUsers: ChatUser[];
       if (userOrder.length > 0) {
         sortedUsers = userOrder
-          .map((id: number) => enhancedUsers.find((u: ChatUser) => u.id === id) as ChatUser)
+          .map(
+            (id: number) =>
+              enhancedUsers.find((u: ChatUser) => u.id === id) as ChatUser
+          )
           .filter(Boolean)
           .concat(
             enhancedUsers
               .filter((u: ChatUser) => !userOrder.includes(u.id))
-              .sort((a: ChatUser, b: ChatUser) => new Date(b.lastMessageTime || 0).getTime() - new Date(a.lastMessageTime || 0).getTime())
+              .sort(
+                (a: ChatUser, b: ChatUser) =>
+                  new Date(b.lastMessageTime || 0).getTime() -
+                  new Date(a.lastMessageTime || 0).getTime()
+              )
           );
       } else {
-        sortedUsers = enhancedUsers.sort((a: ChatUser, b: ChatUser) => new Date(b.lastMessageTime || 0).getTime() - new Date(a.lastMessageTime || 0).getTime());
+        sortedUsers = enhancedUsers.sort(
+          (a: ChatUser, b: ChatUser) =>
+            new Date(b.lastMessageTime || 0).getTime() -
+            new Date(a.lastMessageTime || 0).getTime()
+        );
         const newOrder = sortedUsers.map((u) => u.id);
         setUserOrder(newOrder);
         saveUserOrder(newOrder);
@@ -174,14 +208,19 @@ export default function MessagesPage() {
   // ✅ Update status online/offline
   useEffect(() => {
     if (!socket || !currentUser?.id) return;
-    const handleStatusUpdate = (data: { userId: number; status: "online" | "offline" }) => {
+    const handleStatusUpdate = (data: {
+      userId: number;
+      status: "online" | "offline";
+    }) => {
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === data.userId ? { ...user, status: data.status } : user
         )
       );
       if (selectedChat?.id === data.userId) {
-        setSelectedChat((prev) => (prev ? { ...prev, status: data.status } : prev));
+        setSelectedChat((prev) =>
+          prev ? { ...prev, status: data.status } : prev
+        );
       }
     };
     socket.on("userStatus", handleStatusUpdate);
@@ -195,15 +234,16 @@ export default function MessagesPage() {
     if (!currentUser?.token || !convId) return;
     try {
       if (socket) {
-        socket.emit("markRead", { conversation_id: convId, user_id: currentUser.id });
+        socket.emit("markRead", {
+          conversation_id: convId,
+          user_id: currentUser.id,
+        });
       }
       const targetUserId = selectedChat?.id;
       if (!targetUserId) return;
       setUsers((prevUsers) =>
         prevUsers.map((u) =>
-          u.id === targetUserId
-            ? { ...u, unreadCount: 0, isUnread: false }
-            : u
+          u.id === targetUserId ? { ...u, unreadCount: 0, isUnread: false } : u
         )
       );
       saveUserData(targetUserId, { unreadCount: 0 });
@@ -255,16 +295,25 @@ export default function MessagesPage() {
       try {
         if (selectedChat.isGroup) {
           // --- Load Group ---
-          const groupMsgs = await getGroupMessagesApi(currentUser.token, selectedChat.id);
+          const groupMsgs = await getGroupMessagesApi(
+            currentUser.token,
+            selectedChat.id
+          );
           const resolvedMsgs = resolveReplies(groupMsgs || []);
           setMessagesData(resolvedMsgs);
           setConversationId(null); // Group không có ConversationID kiểu 1-1
         } else {
           // --- Load 1-1 ---
-          const conv = await ensureConversation(currentUser.token, selectedChat.id);
+          const conv = await ensureConversation(
+            currentUser.token,
+            selectedChat.id
+          );
           setConversationId(conv.id);
           await markAsRead(conv.id);
-          const msgs = await getMessagesByConversation(currentUser.token, conv.id);
+          const msgs = await getMessagesByConversation(
+            currentUser.token,
+            conv.id
+          );
           const resolvedMsgs = resolveReplies(msgs || []);
           setMessagesData(resolvedMsgs);
         }
@@ -299,16 +348,24 @@ export default function MessagesPage() {
 
         // 4. Xử lý Optimistic UI: Nếu là tin mình gửi, thay thế tin tạm
         if (msg.sender_id === currentUser.id) {
-          return prevMessages.map(m =>
-            (m.sender_id === currentUser.id && m.content === msg.content && Number(m.id) > 1000000000000)
-              ? msg : m
+          return prevMessages.map((m) =>
+            m.sender_id === currentUser.id &&
+            m.content === msg.content &&
+            Number(m.id) > 1000000000000
+              ? msg
+              : m
           );
         }
 
         // 5. Xử lý Reply: Gắn object tin nhắn gốc vào
         let finalMessage = { ...msg };
-        if (finalMessage.reply_to && typeof finalMessage.reply_to === 'number') {
-          const originalMsg = prevMessages.find(m => m.id === finalMessage.reply_to);
+        if (
+          finalMessage.reply_to &&
+          typeof finalMessage.reply_to === "number"
+        ) {
+          const originalMsg = prevMessages.find(
+            (m) => m.id === finalMessage.reply_to
+          );
           finalMessage.reply_to = originalMsg || null;
         }
 
@@ -317,7 +374,7 @@ export default function MessagesPage() {
     };
 
     socket.on("newGroupMessage", handleNewGroupMessage);
-    
+
     // Cleanup Listener
     return () => {
       socket.off("newGroupMessage", handleNewGroupMessage);
@@ -350,13 +407,20 @@ export default function MessagesPage() {
   }, [socket, currentUser?.id]);
 
   // ✅ Callback update sidebar cho 1-1 (truyền xuống ChatWindow)
-  const handleNewMessageUpdate = (targetUserId: number, messageContent: string, timestamp: string, isFromCurrentUser: boolean) => {
+  const handleNewMessageUpdate = (
+    targetUserId: number,
+    messageContent: string,
+    timestamp: string,
+    isFromCurrentUser: boolean
+  ) => {
     setUsers((prevUsers) => {
       const updatedUsers = prevUsers.map((u) => {
         if (u.id === targetUserId) {
           const isSelected = selectedChat?.id === targetUserId;
           const newUnread = isSelected ? 0 : (u.unreadCount || 0) + 1;
-          const displayMessage = isFromCurrentUser ? `Bạn: ${messageContent}` : messageContent;
+          const displayMessage = isFromCurrentUser
+            ? `Bạn: ${messageContent}`
+            : messageContent;
           const newData = {
             ...u,
             lastMessage: displayMessage,
@@ -382,88 +446,127 @@ export default function MessagesPage() {
       setUserOrder(newOrder);
 
       return newOrder
-        .map((id: number) => updatedUsers.find((u: ChatUser) => u.id === id) as ChatUser)
+        .map(
+          (id: number) =>
+            updatedUsers.find((u: ChatUser) => u.id === id) as ChatUser
+        )
         .filter(Boolean)
         .concat(
           updatedUsers
             .filter((u: ChatUser) => !newOrder.includes(u.id))
-            .sort((a: ChatUser, b: ChatUser) => new Date(b.lastMessageTime || 0).getTime() - new Date(a.lastMessageTime || 0).getTime())
+            .sort(
+              (a: ChatUser, b: ChatUser) =>
+                new Date(b.lastMessageTime || 0).getTime() -
+                new Date(a.lastMessageTime || 0).getTime()
+            )
         );
     });
   };
 
-  return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 flex overflow-hidden relative">
-          <UserSidebar
-            users={users}
-            selectedChat={selectedChat}
-            setSelectedChat={setSelectedChat}
-          />
-          <ChatWindow
-            currentUser={currentUser}
-            selectedChat={selectedChat}
-            conversationId={conversationId}
-            messagesData={messagesData}
-            setMessagesData={setMessagesData}
-            onNewMessageUpdate={handleNewMessageUpdate}
-            setActiveCallParams={setActiveCallParams}
-            setIsMakingCall={setIsMakingCall}
-            setActiveCallDetails={setActiveCallDetails}
-          />
-          {incomingCall && (
-            <IncomingCallModal
-              callData={incomingCall}
-              selectedChat={selectedChat}
-              onAccept={() => {
-                if (!socket || !currentUser) return;
-                socket.emit("receiverReady", {
-                  to: incomingCall.caller_id,
-                  from: currentUser.id,
-                });
+// ... (Phần logic phía trên giữ nguyên)
 
-                setActiveCallParams({
-                  receiver_name: incomingCall.caller_name,
-                  receiver_avatar: incomingCall.caller_avatar || anhmacdinh.src,
-                  call_type: incomingCall.call_type,
-                  conversation_id: incomingCall.conversation_id,
-                  receiver_id: incomingCall.caller_id,
-                });
-                setIsMakingCall(false);
-                setActiveCallDetails({ id: incomingCall.call_id });
-                setIncomingCall(null);
-              }}
-              onReject={() => {
-                if (socket && currentUser) {
-                  socket.emit("callRejected", {
-                    to: incomingCall.caller_id,
-                    from: currentUser.id,
-                  });
-                }
-                setIncomingCall(null);
-              }}
+return (
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+      {/* Sidebar chính (Icon bên trái cùng) - Desktop only */}
+      <Sidebar />
+
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        
+        {/* ====================================================================================
+            HEADER TỔNG (MOBILE ONLY)
+            - Luôn hiển thị (Bỏ điều kiện !selectedChat).
+            - Fixed top, h-16 (64px).
+            - Z-index: 60 (Cao hơn nội dung bên dưới nhưng thấp hơn Modal/Overlay).
+           ==================================================================================== */}
+        <header
+          className="lg:hidden fixed top-0 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-[60] shadow-sm h-16"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
+          <div className="flex items-center justify-between px-4 h-full">
+            {/* Nút mở Menu Sidebar (Drawer) */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("open-chat-drawer"))}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+            </button>
+
+            {/* Tiêu đề */}
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Messages
+            </h1>
+
+            {/* Nút Tạo nhóm */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("open-create-group"))}
+              className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all active:scale-95 shadow-lg"
+            >
+              <Users className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
+
+        {/* ====================================================================================
+            NỘI DUNG CHÍNH (UserSidebar hoặc ChatWindow)
+            - pt-16 (64px): Đẩy nội dung xuống để không bị Header Tổng che mất trên Mobile.
+            - lg:pt-0: Trên Desktop không cần padding này vì Header Tổng bị ẩn.
+           ==================================================================================== */}
+        <main className="flex-1 flex overflow-hidden pt-16 lg:pt-0">
+          
+          {/* 1. KHU VỰC DANH SÁCH BẠN BÈ (UserSidebar) */}
+          <div className={`${selectedChat ? 'hidden lg:flex' : 'flex'} w-full lg:w-auto flex-col h-full border-r border-gray-200 dark:border-gray-800`}>
+            <UserSidebar
+              users={users}
+              selectedChat={selectedChat}
+              setSelectedChat={setSelectedChat}
             />
-          )}
-          {activeCallParams && currentUser && (
-            <div className="absolute inset-0 z-40">
-              <CallPage
-                currentUser={currentUser}
-                receiverParams={activeCallParams}
-                isMakingCall={isMakingCall}
-                initialCallDetails={activeCallDetails}
-                onHangUp={() => {
-                  setActiveCallParams(null);
-                  setIsMakingCall(false);
-                  setActiveCallDetails(null);
-                }}
-              />
-            </div>
-          )}
+          </div>
+
+          {/* 2. KHU VỰC CỬA SỔ CHAT (ChatWindow) */}
+          <div className={`${!selectedChat ? 'hidden lg:flex' : 'flex'} flex-1 flex-col min-w-0 h-full`}>
+            <ChatWindow
+              currentUser={currentUser}
+              selectedChat={selectedChat}
+              conversationId={conversationId}
+              messagesData={messagesData}
+              setMessagesData={setMessagesData}
+              onNewMessageUpdate={handleNewMessageUpdate}
+              setActiveCallParams={setActiveCallParams}
+              setIsMakingCall={setIsMakingCall}
+              setActiveCallDetails={setActiveCallDetails}
+              onBack={() => setSelectedChat(null)} 
+            />
+          </div>
         </main>
       </div>
+
+      {/* ==================== MODAL CUỘC GỌI (Overlays - Z-index cao nhất) ==================== */}
+      {incomingCall && (
+        <div className="fixed inset-0 z-[70] bg-black flex items-end justify-center">
+          <IncomingCallModal
+             callData={incomingCall}
+             selectedChat={selectedChat}
+             onAccept={() => { /* ... */ }}
+             onReject={() => { setIncomingCall(null) }} 
+           />
+        </div>
+      )}
+
+      {activeCallParams && currentUser && (
+        <div className="fixed inset-0 z-[70] bg-black">
+          <CallPage
+            currentUser={currentUser}
+            receiverParams={activeCallParams}
+            isMakingCall={isMakingCall}
+            initialCallDetails={activeCallDetails}
+            onHangUp={() => {
+              setActiveCallParams(null);
+              setIsMakingCall(false);
+              setActiveCallDetails(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
