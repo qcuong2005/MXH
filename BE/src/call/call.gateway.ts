@@ -15,6 +15,13 @@ import { Server, Socket } from 'socket.io';
     credentials: true,
   },
 })
+
+// @WebSocketGateway({
+//   cors: {
+//     origin: ['http:222.255.117.234:3000'],
+//     credentials: true,
+//   },
+// })
 export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;

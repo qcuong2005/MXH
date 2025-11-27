@@ -1,112 +1,4 @@
-// import {
-//   Controller,
-//   Get,
-//   Post,
-//   Body,
-//   Patch,
-//   Param,
-//   Delete,
-//   UseGuards,
-//   HttpStatus,
-//   ParseIntPipe,
-//   Req,
-//   UseInterceptors,
-//   UploadedFiles,
-//   BadRequestException,
-// } from '@nestjs/common';
-// import { PostService } from './post.service';
-// import { CreatePostDto } from './dto/create-post.dto';
-// import { UpdatePostDto } from './dto/update-post.dto';
-// import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-// import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-// import { Post as PostEntity } from './entities/post.entity';
-// import { User } from 'src/user/entities/user.entity';
-// import { Request } from 'express';
-// import { diskStorage } from 'multer';
-// import { extname, join } from 'path';
-// import { AnyFilesInterceptor } from '@nestjs/platform-express';
-// import * as fs from 'fs';
 
-// @ApiTags('post')
-// @Controller('post')
-// export class PostController {
-//   constructor(private readonly postService: PostService) {}
-
-//   @Post()
-//   @UseGuards(JwtAuthGuard)
-//   @ApiBearerAuth('access-token')
-//   @ApiOperation({ summary: 'Create a new post' })
-//   @ApiBody({ type: CreatePostDto })
-//   @ApiResponse({ status: HttpStatus.CREATED, description: 'Post has been successfully created.', type: PostEntity })
-//   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input data.' })
-//   @UseInterceptors(
-//     AnyFilesInterceptor({
-//       storage: diskStorage({
-//         destination: (req, file, cb) => {
-//           const path =
-//             file.fieldname === 'video'
-//               ? join(__dirname, '..', '..', 'uploads', 'posts', 'videos')
-//               : join(__dirname, '..', '..', 'uploads', 'posts', 'image');
-//           fs.mkdirSync(path, { recursive: true });
-//           cb(null, path);
-//         },
-//         filename: (req, file, cb) => {
-//           const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-//           cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
-//         },
-//       }),
-//       limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max cho video, ảnh nhỏ hơn
-//     }),
-//   )
-//   async create(
-//     @Body() createPostDto: CreatePostDto,
-//     @UploadedFiles() files: Express.Multer.File[],
-//     @Req() req: Request,
-//   ) {
-//     const user = req.user as User;
-
-//     const imageFile = files?.find(f => f.fieldname === 'image') || null;
-//     const videoFile = files?.find(f => f.fieldname === 'video') || null;
-
-//     // Xử lý optional: nếu DB NOT NULL, throw lỗi
-//     if (!imageFile && !videoFile && !createPostDto.content.trim()) {
-//       throw new BadRequestException('Phải có ít nhất ảnh, video hoặc nội dung.');
-//     }
-
-//     createPostDto.image_url = imageFile ? `http://localhost:5000/uploads/posts/image/${imageFile.filename}` : null;
-//     createPostDto.video_url = videoFile ? `http://localhost:5000/uploads/posts/videos/${videoFile.filename}` : null;
-
-//     return this.postService.create(createPostDto, user.id);
-//   }
-
-//   @Get()
-//   @ApiBearerAuth('access-token')
-//   async findAll(): Promise<PostEntity[]> {
-//     return await this.postService.findAll();
-//   }
-
-//   @Get(':id')
-//   @UseGuards(JwtAuthGuard)
-//   @ApiBearerAuth('access-token')
-//   @ApiParam({ name: 'id', description: 'Post ID', type: 'number' })
-//   async findOne(@Param('id', ParseIntPipe) id: number): Promise<PostEntity> {
-//     return this.postService.findOne(id);
-//   }
-
-//   @Patch(':id')
-//   @UseGuards(JwtAuthGuard)
-//   @ApiBearerAuth('access-token')
-//   async update(@Param('id', ParseIntPipe) id: number, @Body() updatePostDto: UpdatePostDto): Promise<PostEntity> {
-//     return this.postService.update(id, updatePostDto);
-//   }
-
-//   @Delete(':id')
-//   @UseGuards(JwtAuthGuard)
-//   @ApiBearerAuth('access-token')
-//   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-//     return this.postService.remove(id);
-//   }
-// }
 import {
   Controller,
   Get,
@@ -180,6 +72,11 @@ export class PostController {
     dto.image_url = imageFile ? `http://localhost:5000/uploads/posts/image/${imageFile.filename}` : null;
 
     dto.video_url = videoFile ? `http://localhost:5000/uploads/posts/videos/${videoFile.filename}` : null;
+
+    // dto.image_url = imageFile ? `http://222.255.117.234/uploads/posts/image/${imageFile.filename}` : null;
+
+    // dto.video_url = videoFile ? `http://222.255.117.234/uploads/posts/videos/${videoFile.filename}` : null;
+
 
     return this.postService.create(dto, user.id);
   }

@@ -47,7 +47,7 @@ export class AuthController {
     console.log(avatar);
     // ✅ Đảm bảo file được upload và tạo URL trả về
     const avatarUrl = avatar ? `http://localhost:5000/uploads/avatars/${avatar.filename}` : null;
-
+//  const avatarUrl = avatar ? `hhttp://222.255.117.234:5000/uploads/avatars/${avatar.filename}` : null;
     console.log('📦 Avatar URL:', avatarUrl);
 
     const userData = { ...registerDto, avatar: avatarUrl };
