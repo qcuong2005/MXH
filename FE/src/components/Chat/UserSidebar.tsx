@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import Image from "next/image";
@@ -7,19 +5,17 @@ import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import { X, Search, MessageSquarePlus, Home, Loader2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import CreateGroupModal from "./Group";
-// 👇 Import thêm getFriendsApi
 import { getMyGroupsApi } from "@/services/group";
 import { getToken } from "@/lib/auth";
-import type { Group, FormattedConversation } from "@/types";
+import type { FormattedConversation } from "@/types";
 import { useRouter } from "next/navigation";
 import { getFriendsApi } from "@/services/friend";
 
-// --- Component con Item Chat (đã tối ưu render) ---
+// --- Component con Item Chat (Giữ nguyên) ---
 const ChatItem = ({ c, selectedChat, onClick }: any) => {
+  // ... (Code ChatItem giữ nguyên như cũ) ...
   const isUnread = c.unreadCount > 0;
-  // Logic hiển thị tin nhắn cuối: Nếu là nhóm thì hiện tên người gửi, nếu không thì hiện nội dung
   const displayMessage = c.lastMessage?.trim() || (c.isGroup ? "Nhóm mới tạo" : "Bắt đầu trò chuyện");
-  
   const chatId = c.uniqueId;
   const selectedId = selectedChat?.uniqueId;
   const isSelected = selectedId === chatId;
@@ -42,7 +38,6 @@ const ChatItem = ({ c, selectedChat, onClick }: any) => {
             height={50}
             className="w-12 h-12 rounded-full object-cover aspect-square ring-1 ring-gray-200 dark:ring-gray-700"
           />
-          {/* Chỉ hiện chấm xanh nếu là User và Online (Logic tùy backend trả về) */}
           {!c.isGroup && c.status === "online" && (
             <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900" />
           )}
@@ -80,7 +75,6 @@ const ChatItem = ({ c, selectedChat, onClick }: any) => {
 
 // --- Main Sidebar Component ---
 export default function UserSidebar({
-  // users, 👈 BỎ PROP NÀY (Không dùng nữa)
   selectedChat,
   setSelectedChat,
   onGroupCreated
@@ -90,12 +84,11 @@ export default function UserSidebar({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   
-  // State lưu trữ tất cả cuộc trò chuyện (Friends + Groups)
   const [allConversations, setAllConversations] = useState<FormattedConversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
 
-  // 1. Fetch dữ liệu: Chỉ chạy 1 lần khi mount (Dependency array rỗng)
+  // 1. Fetch dữ liệu (Giữ nguyên)
   useEffect(() => {
     const fetchData = async () => {
       const token = getToken();
@@ -103,47 +96,37 @@ export default function UserSidebar({
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
-
-        // Gọi song song 2 API: Lấy nhóm và Lấy bạn bè
         const [groupsData, friendsData] = await Promise.all([
           getMyGroupsApi(token),
-          getFriendsApi(token) // 👈 API bạn bè bạn vừa cung cấp
+          getFriendsApi(token)
         ]);
 
-        // Format Groups
         const formattedGroups = groupsData.map((g: any) => ({
           ...g,
           isGroup: true,
           uniqueId: `group-${g.id}`,
-          name: g.name, // Tên nhóm
+          name: g.name,
           avatar: g.cover_image || null,
           lastMessage: g.lastMessage || "",
-          lastMessageTime: g.updatedAt, // Dùng updatedAt làm thời gian tin nhắn cuối
+          lastMessageTime: g.updatedAt,
           unreadCount: g.unreadCount || 0,
         }));
 
-        // Format Friends
         const formattedFriends = friendsData.map((f: any) => ({
-            ...f, // Spread các trường gốc
+            ...f,
             id: f.id,
             isGroup: false,
             uniqueId: `user-${f.id}`,
-            // Ưu tiên hiển thị fullName
             name: f.name || f.name || `User ${f.id}`, 
             avatar: f.avatar || null,
-            // Nếu API friends có trả về lastMessage thì dùng, không thì để trống
             lastMessage: f.lastMessage || "", 
-            lastMessageTime: f.lastMessageTime || null, // Thời gian nhắn tin gần nhất
+            lastMessageTime: f.lastMessageTime || null,
             status: f.status || "offline"
         }));
-        // Gộp chung và sắp xếp
+        
         const combined = [...formattedFriends, ...formattedGroups];
-
-        // Sắp xếp: Ưu tiên những đoạn chat có tin nhắn mới nhất lên đầu
-        // Nếu chưa có tin nhắn (lastMessageTime null), đẩy xuống dưới
         combined.sort((a, b) => {
             const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
             const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
@@ -151,40 +134,58 @@ export default function UserSidebar({
         });
 
         setAllConversations(combined);
-
       } catch (error) {
         console.error("Lỗi tải danh sách chat:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, []); // 👈 QUAN TRỌNG: Rỗng để chỉ chạy 1 lần, không chạy lại khi click chat
+  }, []); 
 
-  // 2. Logic điều khiển Drawer trên Mobile
+  // 2. Logic điều khiển Drawer tự động khi chọn chat (Giữ nguyên)
   useEffect(() => {
-    // Nếu có chat được chọn -> Ẩn drawer (trên mobile)
     if (selectedChat) {
       setIsDrawerOpen(false);
     } else {
-      // Nếu không có chat (hoặc vừa vào) -> Hiện drawer
       setIsDrawerOpen(true);
     }
   }, [selectedChat]);
 
-  // 3. Lọc danh sách theo từ khóa tìm kiếm
+  // ✅ 3. [THÊM MỚI] Lắng nghe sự kiện từ MessagesPage để mở Drawer/Modal
+  useEffect(() => {
+    // Hàm xử lý mở Drawer (Khi click icon Menu)
+    const handleOpenDrawer = () => {
+      setIsDrawerOpen(true);
+    };
+
+    // Hàm xử lý mở Modal Tạo nhóm (Khi click icon User)
+    const handleOpenCreateGroup = () => {
+      setIsModalOpen(true);
+    };
+
+    // Đăng ký sự kiện
+    window.addEventListener("open-chat-drawer", handleOpenDrawer);
+    window.addEventListener("open-create-group", handleOpenCreateGroup);
+
+    // Cleanup khi component unmount
+    return () => {
+      window.removeEventListener("open-chat-drawer", handleOpenDrawer);
+      window.removeEventListener("open-create-group", handleOpenCreateGroup);
+    };
+  }, []);
+
+  // 4. Lọc danh sách (Giữ nguyên)
   const filteredConversations = useMemo(() => {
     return allConversations.filter((c) =>
       (c.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [allConversations, searchTerm]);
 
-  // --- Handlers ---
+  // --- Handlers (Giữ nguyên) ---
   const handleGroupCreated = (newGroup: any) => {
     if (typeof onGroupCreated === "function") onGroupCreated(newGroup);
     
-    // Thêm nhóm mới vào danh sách ngay lập tức mà không cần fetch lại API
     const formattedNewGroup = {
         ...newGroup,
         isGroup: true,
@@ -195,10 +196,10 @@ export default function UserSidebar({
     };
     
     setAllConversations(prev => [formattedNewGroup, ...prev]);
-
     setSuccessMessage("Tạo nhóm thành công!");
     setTimeout(() => setSuccessMessage(""), 3000);
     setIsDrawerOpen(false);
+    setIsModalOpen(false); // Đóng modal sau khi tạo
   };
 
   const closeDrawer = () => setIsDrawerOpen(false);
@@ -210,9 +211,12 @@ export default function UserSidebar({
         <div className="fixed inset-0 bg-black/50 z-[90] lg:hidden transition-opacity duration-300" onClick={closeDrawer}/>
       )}
 
-      <aside className={`fixed inset-y-0 left-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-[100] transition-transform duration-300 ease-in-out lg:hidden ${isDrawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      {/* ✅ Đã thêm "flex flex-col h-full" vào class của aside để đảm bảo layout full chiều cao 
+         Và giữ nguyên logic transform translate-x để trượt ra/vào
+      */}
+      <aside className={`fixed inset-y-0 left-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-[100] transition-transform duration-300 ease-in-out lg:hidden flex flex-col h-full ${isDrawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
         {/* Mobile Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Đoạn chat</h1>
           <div className="flex items-center gap-1">
             <button onClick={() => router.push("/")} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
@@ -223,7 +227,7 @@ export default function UserSidebar({
             </button>
           </div>
         </div>
-        {/* Mobile Content (Reused logic below) */}
+        
         <SidebarContent 
            loading={loading}
            searchTerm={searchTerm}
@@ -272,13 +276,12 @@ export default function UserSidebar({
   );
 }
 
-// --- Tách phần nội dung Sidebar ra để tái sử dụng cho Mobile & Desktop ---
+// --- Sidebar Content (Giữ nguyên) ---
 const SidebarContent = ({ 
     loading, searchTerm, setSearchTerm, filteredConversations, selectedChat, setSelectedChat, isMobile, openCreateGroupModal 
 }: any) => {
     return (
         <div className="flex flex-col h-full overflow-hidden bg-white dark:bg-gray-900">
-            {/* Search Input */}
             <div className="px-4 py-3 flex-shrink-0">
                 <div className="relative">
                     <input
@@ -292,7 +295,6 @@ const SidebarContent = ({
                 </div>
             </div>
 
-            {/* List Chat */}
             <div className="flex-1 overflow-y-auto pb-20 lg:pb-0 custom-scrollbar">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -303,7 +305,6 @@ const SidebarContent = ({
                     <div className="p-8 text-center flex flex-col items-center">
                         <MessageSquarePlus className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-2" />
                         <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Chưa có cuộc trò chuyện nào.</p>
-                         {/* Nút gợi ý tạo nhóm chỉ hiện trên mobile trong context này nếu list rỗng */}
                          {isMobile && openCreateGroupModal && (
                              <button onClick={openCreateGroupModal} className="text-blue-600 text-sm font-medium">Tạo nhóm mới</button>
                          )}

@@ -106,4 +106,13 @@ export class GroupMemberService {
 
     return members;
   }
+
+  /**
+   * 👇👇👇 HÀM MỚI THÊM VÀO ĐÂY 👇👇👇
+   * Tìm một thành viên cụ thể trong nhóm
+   * Dùng để check quyền trong các service khác (như GroupCallService)
+   */
+  async findMember(group_id: number, user_id: number): Promise<GroupMember> {
+    return this.memberRepository.findOneBy({ group_id, user_id });
+  }
 }

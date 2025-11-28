@@ -16,11 +16,12 @@ import { FriendsModule } from './friends/friends.module';
 import { GroupModule } from './group/group.module';
 import { GroupMemberModule } from './group-member/group-member.module';
 import { GroupMessagesModule } from './group-messages/group-messages.module';
+import { GroupCallModule } from './group-call/group-call.module';
 
 
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule,],
+  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule, GroupCallModule,],
   providers: [
     {
       provide: APP_GUARD,
