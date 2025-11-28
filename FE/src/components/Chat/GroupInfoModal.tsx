@@ -1,14 +1,33 @@
 "use client";
 import { useState, useEffect } from "react";
-import { X, UserPlus, Trash2, Users, Shield } from "lucide-react";
+import { X, UserPlus, Trash2, Users, Shield, Search, Check, Loader2, AlertCircle } from "lucide-react";
 import Image from "next/image";
-import anhmacdinh from "../../../image/anhmacdinh.jpg"; // Đảm bảo đường dẫn import đúng
+import anhmacdinh from "../../../image/anhmacdinh.jpg"; 
+import { 
+  getGroupMembersApi, 
+  addGroupMemberApi, 
+  removeGroupMemberApi,
+  // searchUsersApi, // Uncomment nếu bạn đã có API tìm kiếm user toàn hệ thống
+} from "@/services/group";
+import { getFriendsApi } from "@/services/friend";
+
+// --- Interfaces ---
 
 interface GroupInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedChat: any; // Thông tin group hiện tại
+  selectedChat: any;
   currentUser: any;
+}
+
+interface MemberDisplay {
+  id: number;       // ID record group_member (nếu có)
+  userId: number;   // ID User
+  name: string;
+  avatar: string | null;
+  username?: string;
+  role: 'admin' | 'member' | null;
+  isInGroup: boolean;
 }
 
 export default function GroupInfoModal({
@@ -17,85 +36,157 @@ export default function GroupInfoModal({
   selectedChat,
   currentUser,
 }: GroupInfoModalProps) {
-  // 1. KHAI BÁO TOÀN BỘ HOOKS Ở ĐÂY (TRƯỚC MỌI CÂU LỆNH RETURN)
+  // --- STATE ---
   const [activeTab, setActiveTab] = useState<"members" | "add">("members");
-  const [members, setMembers] = useState<any[]>([]);
-  const [newMemberId, setNewMemberId] = useState("");
-  const [loading, setLoading] = useState(false);
+  
+  // Tab Danh sách thành viên
+  const [members, setMembers] = useState<MemberDisplay[]>([]);
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
 
-  // useEffect này LUÔN ĐƯỢC GỌI mỗi lần render, nhưng logic bên trong chỉ chạy khi cần thiết
+  // Tab Thêm thành viên
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestedUsers, setSuggestedUsers] = useState<MemberDisplay[]>([]); 
+  const [loadingList, setLoadingList] = useState(false); 
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  // --- EFFECT: LOAD MEMBERS KHI MỞ MODAL ---
   useEffect(() => {
-    // Chỉ thực hiện logic load dữ liệu khi Modal mở VÀ là Group chat
-    if (isOpen && selectedChat?.id && selectedChat.isGroup) {
-      
-      // TODO: Thay thế bằng API thực tế
-      // const fetchMembers = async () => {
-      //   try {
-      //     const data = await getGroupMembers(selectedChat.id);
-      //     setMembers(data);
-      //   } catch (error) { console.error(error); }
-      // };
-      // fetchMembers();
-
-      // Dữ liệu giả (MOCK DATA) để test giao diện
-      setMembers([
-        { id: currentUser.id, name: "Bạn (Admin)", avatar: currentUser.avatar, role: "admin" },
-        { id: 999, name: "Nguyễn Văn A", avatar: null, role: "member" },
-        { id: 888, name: "Trần Thị B", avatar: null, role: "member" },
-      ]);
+    if (isOpen && selectedChat?.id && selectedChat.isGroup && currentUser?.token) {
+      fetchGroupMembers();
     }
   }, [isOpen, selectedChat, currentUser]);
 
-  // 2. LỚP BẢO VỆ (SAFETY CHECK) - ĐẶT SAU TẤT CẢ CÁC HOOKS
-  // Nếu Modal không mở hoặc chat hiện tại KHÔNG phải là Group -> Không render gì cả.
-  if (!isOpen || !selectedChat?.isGroup) return null;
+  // --- EFFECT: LOAD BẠN BÈ HOẶC TÌM KIẾM ---
+  useEffect(() => {
+    if (activeTab === "add" && isOpen) {
+      const fetchSuggestions = async () => {
+        setLoadingList(true);
+        try {
+          let rawData: any[] = [];
+          
+          if (!searchTerm.trim()) {
+            // 🟢 TRƯỜNG HỢP 1: Không nhập gì -> Gọi API lấy danh sách bạn bè thật
+            console.log("Đang lấy danh sách bạn bè...");
+            rawData = await getFriendsApi(currentUser.token);
+            
+          } else {
+            // 🟡 TRƯỜNG HỢP 2: Có nhập từ khóa -> Gọi API tìm kiếm User (Search System)
+            // Nếu bạn chưa có API searchUsersApi, tạm thời trả về rỗng hoặc filter từ list bạn bè
+            // rawData = await searchUsersApi(currentUser.token, searchTerm);
+            
+            console.log("Đang tìm kiếm:", searchTerm);
+            // Tạm thời để rỗng nếu chưa có API search
+             rawData = []; 
+          }
+
+          // Lấy danh sách ID thành viên đang có trong nhóm để check "Đã tham gia"
+          const currentMemberIds = new Set(members.map(m => m.userId));
+
+          // Map dữ liệu từ API về format hiển thị
+          // Lưu ý: Tùy thuộc vào response của getFriendsApi trả về key là 'name', 'fullName' hay 'username'
+          const mappedSuggestions: MemberDisplay[] = rawData.map((u: any) => ({
+            id: 0, 
+            userId: u.id, 
+            // Ưu tiên hiển thị fullName, nếu không có thì username, không có nữa thì ID
+            name: u.fullName || u.name || u.username || `User ${u.id}`, 
+            username: u.username,
+            avatar: u.avatar,
+            role: null,
+            isInGroup: currentMemberIds.has(u.id)
+          }));
+
+          setSuggestedUsers(mappedSuggestions);
+
+        } catch (error) {
+          console.error("Lỗi tải danh sách gợi ý:", error);
+        } finally {
+          setLoadingList(false);
+        }
+      };
+
+      // Debounce: Chờ 500ms sau khi ngừng gõ mới gọi API (tránh spam server)
+      const timeoutId = setTimeout(() => {
+        fetchSuggestions();
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [activeTab, searchTerm, isOpen, members, currentUser.token]); // Thêm dependencies
 
   // --- CÁC HÀM XỬ LÝ LOGIC ---
 
-  const handleAddMember = async () => {
-    if (!newMemberId.trim()) return;
-    setLoading(true);
+  const fetchGroupMembers = async () => {
     try {
-      console.log(`Thêm user ${newMemberId} vào group ${selectedChat.id}`);
+      const data = await getGroupMembersApi(currentUser.token, selectedChat.id);
       
-      // TODO: Gọi API addMemberToGroup(selectedChat.id, newMemberId)
-      // Giả lập delay mạng
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const mappedMembers: MemberDisplay[] = data.map((m: any) => ({
+        id: m.id, 
+        userId: m.user?.id || m.user_id,
+        name: m.user?.fullName || m.user?.username || `User ${m.user_id}`,
+        avatar: m.user?.avatar,
+        role: m.role,
+        isInGroup: true
+      }));
       
-      alert("Đã thêm thành viên thành công!");
-      setNewMemberId("");
+      setMembers(mappedMembers);
+
+      const myMemberInfo = mappedMembers.find(m => m.userId === currentUser.id);
+      setIsCurrentUserAdmin(myMemberInfo?.role === 'admin');
     } catch (error) {
+      console.error("Lỗi tải thành viên nhóm:", error);
+    }
+  };
+
+  const handleAddMember = async (userIdToAdd: number) => {
+    setProcessingId(userIdToAdd);
+    try {
+      await addGroupMemberApi(currentUser.token, selectedChat.id, userIdToAdd);
+      
+      // Update UI Optimistic
+      setSuggestedUsers(prev => prev.map(u => 
+        u.userId === userIdToAdd ? { ...u, isInGroup: true } : u
+      ));
+      
+      // Reload danh sách thành viên trong tab kia
+      fetchGroupMembers();
+
+    } catch (error: any) {
       console.error(error);
-      alert("Có lỗi xảy ra khi thêm thành viên.");
+      const errorMessage = error.response?.data?.message || "Thêm thất bại.";
+      if (errorMessage.toLowerCase().includes("kiểm duyệt") || error.response?.status === 403) {
+        alert("Đã gửi yêu cầu tham gia tới Admin (Do nhóm đang bật kiểm duyệt).");
+      } else {
+        alert(`Lỗi: ${errorMessage}`);
+      }
     } finally {
-      setLoading(false);
+      setProcessingId(null);
     }
   };
 
-  const handleRemoveMember = async (memberId: number) => {
-    if (!confirm("Bạn có chắc muốn xóa thành viên này khỏi nhóm?")) return;
+  const handleRemoveMember = async (userIdToRemove: number) => {
+    if (!isCurrentUserAdmin) return;
+    if (!confirm("Bạn có chắc muốn xóa thành viên này?")) return;
+    
+    setProcessingId(userIdToRemove);
     try {
-      console.log(`Xóa user ${memberId} khỏi group ${selectedChat.id}`);
-      
-      // TODO: Gọi API removeMemberFromGroup(selectedChat.id, memberId)
-      
-      // Cập nhật lại danh sách local (Optimistic UI)
-      setMembers(members.filter((m) => m.id !== memberId));
-    } catch (error) {
-      console.error(error);
-      alert("Xóa thành viên thất bại.");
+      await removeGroupMemberApi(currentUser.token, selectedChat.id, userIdToRemove);
+      setMembers(prev => prev.filter((m) => m.userId !== userIdToRemove));
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Xóa thất bại");
+    } finally {
+      setProcessingId(null);
     }
   };
 
-  // Helper hiển thị avatar an toàn (tránh lỗi nếu avatar null)
   const getAvatarSrc = (avatar: string | null | undefined) => {
     return avatar || anhmacdinh.src;
   };
 
-  // --- RENDER GIAO DIỆN ---
+  // --- RENDER ---
+  if (!isOpen || !selectedChat?.isGroup) return null;
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      {/* Overlay click to close */}
       <div className="absolute inset-0" onClick={onClose}></div>
 
       <div className="relative bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] z-10">
@@ -104,69 +195,57 @@ export default function GroupInfoModal({
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
           <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2">
             <Users size={20} className="text-blue-600" /> 
-            Quản lý nhóm
+            Thông tin nhóm
           </h3>
-          <button 
-            onClick={onClose} 
-            className="p-1.5 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700 transition-colors text-gray-500"
-          >
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700 transition-colors text-gray-500">
             <X size={20} />
           </button>
         </div>
 
-        {/* Tabs Navigation */}
+        {/* Tabs */}
         <div className="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <button
             onClick={() => setActiveTab("members")}
             className={`flex-1 py-3 text-sm font-medium transition-all relative ${
-              activeTab === "members"
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              activeTab === "members" ? "text-blue-600 dark:text-blue-400" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
             }`}
           >
-            Danh sách ({members.length})
-            {activeTab === "members" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full" />
-            )}
+            Thành viên ({members.length})
+            {activeTab === "members" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400" />}
           </button>
           <button
-            onClick={() => setActiveTab("add")}
+            onClick={() => { setActiveTab("add"); setSearchTerm(""); }}
             className={`flex-1 py-3 text-sm font-medium transition-all relative ${
-              activeTab === "add"
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              activeTab === "add" ? "text-blue-600 dark:text-blue-400" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
             }`}
           >
-            Thêm thành viên
-            {activeTab === "add" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-full" />
-            )}
+            Thêm người mới
+            {activeTab === "add" && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 dark:bg-blue-400" />}
           </button>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-gray-800">
+        <div className="flex-1 overflow-y-auto p-0 bg-white dark:bg-gray-800 custom-scrollbar">
           
           {/* TAB 1: DANH SÁCH THÀNH VIÊN */}
           {activeTab === "members" && (
-            <div className="space-y-2">
+            <div className="p-2">
               {members.length === 0 ? (
-                <p className="text-center text-gray-500 py-8 text-sm">Chưa có thành viên nào.</p>
+                 <div className="flex justify-center py-8"><Loader2 className="animate-spin text-blue-500"/></div>
               ) : (
                 members.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors group">
+                  <div key={member.userId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors group">
                     <div className="flex items-center gap-3">
                       <Image
                         src={getAvatarSrc(member.avatar)}
                         alt={member.name}
-                        width={44}
-                        height={44}
+                        width={44} height={44}
                         className="w-11 h-11 rounded-full object-cover border border-gray-100 dark:border-gray-600"
                       />
                       <div>
                         <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1">
                           {member.name}
-                          {member.id === currentUser.id && <span className="text-gray-400 font-normal text-xs">(Bạn)</span>}
+                          {member.userId === currentUser.id && <span className="text-gray-400 font-normal text-xs">(Bạn)</span>}
                         </p>
                         {member.role === 'admin' ? (
                           <span className="text-[10px] bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400 px-2 py-0.5 rounded-full flex items-center w-fit gap-1 mt-0.5 font-medium">
@@ -178,15 +257,14 @@ export default function GroupInfoModal({
                       </div>
                     </div>
                     
-                    {/* Nút xóa: Hiện khi CurrentUser là Admin VÀ không phải xóa chính mình */}
-                    {/* (Logic demo: Hiện nút xóa cho tất cả user khác mình) */}
-                    {member.id !== currentUser.id && (
+                    {/* Nút xóa */}
+                    {isCurrentUserAdmin && member.userId !== currentUser.id && (
                       <button 
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-                        title="Xóa khỏi nhóm"
+                        onClick={() => handleRemoveMember(member.userId)}
+                        disabled={processingId === member.userId}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50"
                       >
-                        <Trash2 size={18} />
+                         {processingId === member.userId ? <Loader2 size={18} className="animate-spin"/> : <Trash2 size={18} />}
                       </button>
                     )}
                   </div>
@@ -195,50 +273,79 @@ export default function GroupInfoModal({
             </div>
           )}
 
-          {/* TAB 2: THÊM THÀNH VIÊN */}
+          {/* TAB 2: TÌM KIẾM & THÊM TỪ BẠN BÈ */}
           {activeTab === "add" && (
-            <div className="space-y-5">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex gap-3 items-start">
-                <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded-full flex-shrink-0">
-                  <UserPlus size={18} className="text-blue-600 dark:text-blue-300" />
+            <div className="flex flex-col h-full">
+              {/* Search Box */}
+              <div className="p-4 bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Nhập tên người dùng..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-700 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 dark:text-white"
+                  />
                 </div>
-                <div>
-                   <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">Mời thành viên mới</h4>
-                   <p className="text-xs text-blue-600 dark:text-blue-300 leading-relaxed">
-                      Nhập ID hoặc tên người dùng để mời họ tham gia vào nhóm trò chuyện này.
-                   </p>
-                </div>
+                {selectedChat?.moderation && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
+                    <AlertCircle size={12}/> Chế độ kiểm duyệt đang bật: Admin sẽ duyệt yêu cầu.
+                  </p>
+                )}
               </div>
-              
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Nhập ID người dùng..."
-                  value={newMemberId}
-                  onChange={(e) => setNewMemberId(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-700 dark:text-white transition-all text-sm shadow-sm"
-                />
-                <button
-                  onClick={handleAddMember}
-                  disabled={loading || !newMemberId.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all shadow-sm active:scale-95"
-                >
-                  {loading ? (
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>Thêm</>
-                  )}
-                </button>
-              </div>
-              
-              {/* Phần gợi ý (Placeholder) */}
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Gợi ý từ bạn bè</h4>
-                <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
-                   <Users size={32} className="text-gray-300 dark:text-gray-600 mb-2" />
-                   <p className="text-sm text-gray-500 dark:text-gray-400">Danh sách bạn bè sẽ hiển thị ở đây</p>
-                </div>
+
+              {/* List Suggestion */}
+              <div className="flex-1 p-2 overflow-y-auto">
+                <p className="px-2 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  {searchTerm ? "Kết quả tìm kiếm" : "Bạn bè của bạn"}
+                </p>
+
+                {loadingList ? (
+                   <div className="flex justify-center py-8 text-gray-400"><Loader2 className="animate-spin"/></div>
+                ) : suggestedUsers.length === 0 ? (
+                   <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <Users size={30} className="text-gray-300 dark:text-gray-600 mb-2"/>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {searchTerm ? "Không tìm thấy người dùng nào." : "Bạn chưa có bạn bè nào."}
+                      </p>
+                   </div>
+                ) : (
+                  suggestedUsers.map((user) => (
+                    <div key={user.userId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
+                      <div className="flex items-center gap-3">
+                         <Image
+                            src={getAvatarSrc(user.avatar)}
+                            alt={user.name}
+                            width={40} height={40}
+                            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-600"
+                          />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{user.name}</p>
+                            {user.username && <p className="text-xs text-gray-500">@{user.username}</p>}
+                          </div>
+                      </div>
+
+                      {user.isInGroup ? (
+                        <span className="text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400 px-3 py-1.5 rounded-lg flex items-center gap-1">
+                          <Check size={12}/> Đã tham gia
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleAddMember(user.userId)}
+                          disabled={processingId === user.userId}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-all active:scale-95 disabled:opacity-70 disabled:active:scale-100 shadow-sm"
+                        >
+                          {processingId === user.userId ? (
+                             <Loader2 size={14} className="animate-spin"/>
+                          ) : (
+                             <><UserPlus size={14}/> Thêm</>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

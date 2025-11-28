@@ -1,47 +1,15 @@
-// import { Injectable, Inject, forwardRef } from '@nestjs/common';
-// import { InjectRepository } from '@nestjs/typeorm';
-// import { Repository } from 'typeorm';
-// import { GroupMember } from './entities/group-member.entity';
-// import { GroupService } from 'src/group/group.service';
-
-// @Injectable()
-// export class GroupMemberService {
-//   constructor(
-//     @InjectRepository(GroupMember)
-//     private readonly memberRepository: Repository<GroupMember>,
-
-//     @Inject(forwardRef(() => GroupService))
-//     private readonly groupService: GroupService,
-//   ) {}
-
-//   async addMember(group_id: number, user_id: number): Promise<GroupMember> {
-//     const newMember = this.memberRepository.create({ group_id, user_id });
-//     await this.memberRepository.save(newMember);
-//     return newMember;
-//   }
-
-//   async removeMember(group_id: number, user_id: number): Promise<any> {
-//     return this.memberRepository.delete({ group_id, user_id });
-//   }
-
-//   async findMembersOfGroup(group_id: number): Promise<GroupMember[]> {
-//     return this.memberRepository.find({
-//       where: { group_id },
-//     });
-//   }
-// }
 import {
   Injectable,
-  Inject,
-  forwardRef,
   ForbiddenException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GroupMember, GroupMemberRole, } from './entities/group-member.entity';
+import { GroupMember } from './entities/group-member.entity';
+import { Group } from 'src/group/entities/group.entity';
 import { CreateGroupMemberDto } from './dto/create-group-member.dto';
-import { Group } from 'src/group/entities/group.entity'; // 👈 Import Group
+import { User } from 'src/user/entities/user.entity'; // Import User Entity Class để dùng cho QueryBuilder
 
 @Injectable()
 export class GroupMemberService {
@@ -49,85 +17,93 @@ export class GroupMemberService {
     @InjectRepository(GroupMember)
     private readonly memberRepository: Repository<GroupMember>,
 
-    // 1. Phải inject GroupRepository để check quyền "moderation"
     @InjectRepository(Group)
     private readonly groupRepository: Repository<Group>,
   ) {}
 
   /**
-   * Hàm nội bộ để thêm thành viên, không check quyền
-   * Dùng bởi GroupService khi tạo nhóm
-   */
-  async addMemberInternal(
-    group_id: number,
-    user_id: number,
-    role: GroupMemberRole = 'member',
-  ): Promise<GroupMember> {
-    const newMember = this.memberRepository.create({ group_id, user_id, role });
-    await this.memberRepository.save(newMember);
-    return newMember;
-  }
-  
-  /**
-   * (VIẾT LẠI) Hàm thêm thành viên, dùng cho Controller
-   * Phải tự check quyền
+   * Thêm thành viên vào nhóm (Có phân quyền)
    */
   async addMember(
     dto: CreateGroupMemberDto,
-    requesterId: number, // ID của người thực hiện
+    requesterId: number,
   ): Promise<GroupMember> {
-    
-    // 1. Lấy thông tin nhóm để check "moderation"
+    // 1. Kiểm tra nhóm tồn tại
     const group = await this.groupRepository.findOneBy({ id: dto.group_id });
     if (!group) {
       throw new NotFoundException('Không tìm thấy nhóm');
     }
 
-    // 2. Lấy thông tin của người yêu cầu để check "role"
-    const requester = await this.findMember(dto.group_id, requesterId);
+    // 2. Kiểm tra người yêu cầu (requester) có trong nhóm không
+    const requester = await this.memberRepository.findOneBy({
+      group_id: dto.group_id,
+      user_id: requesterId,
+    });
     if (!requester) {
       throw new ForbiddenException('Bạn không phải là thành viên của nhóm này');
     }
 
-    // 3. (LOGIC PHÂN QUYỀN)
-    // Nếu nhóm BẬT kiểm duyệt (moderation: true)
+    // 3. Logic kiểm duyệt (Moderation)
     if (group.moderation === true) {
-      // Chỉ admin mới được thêm
       if (requester.role !== 'admin') {
         throw new ForbiddenException(
-          'Nhóm này đang bật kiểm duyệt, chỉ admin mới được thêm thành viên.',
+          'Nhóm đang bật kiểm duyệt, chỉ Admin mới được thêm thành viên.',
         );
       }
     }
-    // Nếu nhóm TẮT kiểm duyệt (moderation: false),
-    // chỉ cần là 'member' (đã check ở bước 2) là được thêm
 
-    // 4. Thêm thành viên mới với vai trò 'member'
+    // 4. Kiểm tra xem user cần thêm đã ở trong nhóm chưa
+    const existingMember = await this.memberRepository.findOneBy({
+      group_id: dto.group_id,
+      user_id: dto.user_id,
+    });
+    if (existingMember) {
+      throw new BadRequestException('Người dùng này đã ở trong nhóm rồi');
+    }
+
+    // 5. Tạo thành viên mới
     const newMember = this.memberRepository.create({
       group_id: dto.group_id,
       user_id: dto.user_id,
-      role: 'member',
+      role: 'member', // Mặc định là member
     });
-    
-    await this.memberRepository.save(newMember);
-    return newMember;
+
+    return await this.memberRepository.save(newMember);
   }
-  
-  // Hàm xóa (vẫn nên check quyền, nhưng tạm giữ)
+
+  /**
+   * Xóa thành viên
+   */
   async removeMember(group_id: number, user_id: number): Promise<any> {
+    // Lưu ý: Bạn nên thêm logic check quyền người xóa ở đây tương tự addMember
     return this.memberRepository.delete({ group_id, user_id });
   }
 
-  // Hàm lấy thành viên
-  async findMembersOfGroup(group_id: number): Promise<GroupMember[]> {
-    return this.memberRepository.find({
-      where: { group_id },
-      // Xóa 'relations' vì không còn
-    });
-  }
+  /**
+   * Lấy danh sách thành viên + fullName + username
+   * (KHÔNG DÙNG RELATION, DÙNG QUERY BUILDER)
+   */
+  async findMembersOfGroup(group_id: number): Promise<any[]> {
+    const members = await this.memberRepository
+      .createQueryBuilder('gm') // 'gm' là alias cho bảng group_members
+      // Join thủ công sang bảng user (alias 'u')
+      // Điều kiện: gm.user_id = u.id
+      .leftJoinAndMapOne('gm.user', User, 'u', 'gm.user_id = u.id')
+      .where('gm.group_id = :group_id', { group_id })
+      .select([
+        // Chọn các cột của bảng group_members
+        'gm.id',
+        'gm.group_id',
+        'gm.user_id',
+        'gm.role',
+        // Chọn các cột của bảng users
+        'u.id',
+        'u.username',
+        'u.fullName',
+        'u.email', // Thêm email hoặc avatar nếu cần
+      ])
+      .getMany();
 
-  // Hàm tiện ích để tìm 1 thành viên
-  async findMember(group_id: number, user_id: number): Promise<GroupMember> {
-    return this.memberRepository.findOneBy({ group_id, user_id });
+    return members;
   }
 }

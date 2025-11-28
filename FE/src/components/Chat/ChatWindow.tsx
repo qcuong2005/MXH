@@ -16,7 +16,6 @@ import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSocket } from "@/components/SocketContext";
-import IncomingCallModal from "@/components/Chat/IncomingCallModal";
 import CallPage, { ReceiverParams } from "@/components/Chat/Call";
 import { Call } from "@/types";
 import { sendGroupMessageApi } from "@/services/group";
