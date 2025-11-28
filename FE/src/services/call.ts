@@ -1,5 +1,5 @@
-import { get, post, put } from "@/utils/request";
-import type { Call } from "@/types"; 
+import { get, patch, post, put } from "@/utils/request";
+import type { Call, GroupCall } from "@/types"; 
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
@@ -61,6 +61,52 @@ export async function getCallByConversation(
 // Lấy tất cả cuộc gọi (giữ nguyên)
 export async function getAllCalls(): Promise<Call[]> {
   return await get<Call[]>("/calls", {
+    headers: getAuthHeaders(),
+  });
+}
+
+
+export async function createGroupCallApi(
+  groupId: number, 
+  type: 'audio' | 'video'
+): Promise<GroupCall> {
+  const body = {
+    group_id: groupId,
+    type: type
+  };
+  
+  return await post<GroupCall>("/group-calls", body, {
+    headers: getAuthHeaders(),
+  });
+}
+
+/**
+ * 2. Lấy lịch sử cuộc gọi của một nhóm
+ * Method: GET /group-calls/group/:groupId
+ */
+export async function getGroupCallHistoryApi(groupId: number): Promise<GroupCall[]> {
+  return await get<GroupCall[]>(`/group-calls/group/${groupId}`, {
+    headers: getAuthHeaders(),
+  });
+}
+
+/**
+ * 3. Lấy chi tiết một cuộc gọi cụ thể
+ * Method: GET /group-calls/:id
+ */
+export async function getGroupCallByIdApi(callId: number): Promise<GroupCall> {
+  return await get<GroupCall>(`/group-calls/${callId}`, {
+    headers: getAuthHeaders(),
+  });
+}
+
+/**
+ * 4. Kết thúc cuộc gọi nhóm (Dành cho tất cả mọi người)
+ * Method: PATCH /group-calls/:id/end
+ */
+export async function endGroupCallApi(callId: number): Promise<any> {
+  // Body rỗng vì backend chỉ cần ID trên URL và Token để check quyền
+  return await patch(`/group-calls/${callId}/end`, {}, {
     headers: getAuthHeaders(),
   });
 }
