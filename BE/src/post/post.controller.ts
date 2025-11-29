@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Get,
@@ -34,7 +33,9 @@ import * as fs from 'fs';
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
-  // Tạo bài viết
+  // ==========================
+  // TẠO BÀI VIẾT
+  // ==========================
   @HttpPost()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
@@ -60,7 +61,7 @@ export class PostController {
       limits: { fileSize: 50 * 1024 * 1024 },
     }),
   )
-  async create(@Body() dto: CreatePostDto, @UploadedFiles() files: Express.Multer.File[], @Req() req: Request) {
+  async create(@Body() dto: CreatePostDto, @UploadedFiles() files: Express.Multer.File[], @Req() req: any) {
     const user = req.user as User;
     const imageFile = files?.find(f => f.fieldname === 'image');
     const videoFile = files?.find(f => f.fieldname === 'video');
@@ -70,50 +71,63 @@ export class PostController {
     }
 
     dto.image_url = imageFile ? `http://localhost:5000/uploads/posts/image/${imageFile.filename}` : null;
-
     dto.video_url = videoFile ? `http://localhost:5000/uploads/posts/videos/${videoFile.filename}` : null;
 
-    // dto.image_url = imageFile ? `http://222.255.117.234/uploads/posts/image/${imageFile.filename}` : null;
-
-    // dto.video_url = videoFile ? `http://222.255.117.234/uploads/posts/videos/${videoFile.filename}` : null;
-
+    //   dto.image_url = imageFile ? `http://222.255.117.234:5000/uploads/posts/image/${imageFile.filename}` : null;
+    // dto.video_url = videoFile ? `http://222.255.117.234:5000/uploads/posts/videos/${videoFile.filename}` : null;
 
     return this.postService.create(dto, user.id);
   }
 
-  // 1) TRANG CHỦ — tất cả bài viết
+  // ==========================
+  // 1) TRANG CHỦ (NEWSFEED)
+  // ==========================
   @Get()
-  @ApiOperation({ summary: 'Lấy tất cả bài viết (không/truyền page,limit)' })
+  @UseGuards(JwtAuthGuard) // <--- Bắt buộc đăng nhập để lọc theo bạn bè
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Lấy Newsfeed (Có lọc Public/Friends/Private)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   async findAll(
+    @Req() req: any, 
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ): Promise<PostEntity[] | { data: PostEntity[]; total: number }> {
-    // không truyền page/limit → trả mảng
-    if (!page && !limit) return this.postService.findAllNoPaging();
-    // có page/limit → trả object
-    return this.postService.findAllPaged(Number(page) || 1, Number(limit) || 10);
+  ) {
+    const currentUserId = req.user.id;
+    // Gọi hàm getNewsFeed thay vì findAllPaged
+    return this.postService.getNewsFeed(currentUserId, Number(page) || 1, Number(limit) || 10);
   }
 
-  // 2) TRANG PROFILE — bài viết theo user
+  // ==========================
+  // 2) TRANG PROFILE (BÀI CỦA 1 USER)
+  // ==========================
   @Get('user/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Lấy bài viết của 1 user (không/truyền page,limit)' })
+  @ApiOperation({ summary: 'Lấy bài viết của 1 user (Check quyền xem giữa 2 người)' })
   @ApiParam({ name: 'id', type: 'number' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'limit', required: false, example: 10 })
   async findByUser(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) targetUserId: number,
+    @Req() req: any,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
-  ): Promise<PostEntity[] | { data: PostEntity[]; total: number }> {
-    if (!page && !limit) return this.postService.findByUserNoPaging(id);
-    return this.postService.findByUserPaged(id, Number(page) || 1, Number(limit) || 10);
+  ) {
+    const currentUserId = req.user.id;
+    // Gọi hàm mới xử lý logic xem trang cá nhân
+    return this.postService.getPostsByTargetUser(
+        targetUserId, 
+        currentUserId, 
+        Number(page) || 1, 
+        Number(limit) || 10
+    );
   }
 
-  // Lấy 1 bài viết
+  // ==========================
+  // CÁC API KHÁC
+  // ==========================
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
@@ -121,7 +135,6 @@ export class PostController {
     return this.postService.findOne(id);
   }
 
-  // Cập nhật
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
@@ -129,11 +142,16 @@ export class PostController {
     return this.postService.update(id, dto);
   }
 
-  // Xoá
+// Xoá
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.postService.remove(id);
+  // 1. Bỏ Promise<void> hoặc sửa thành Promise<any>
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    // 2. Chờ service thực hiện xong
+    await this.postService.remove(id);
+    
+    // 3. Trả về một object JSON để frontend parse được
+    return { message: 'Xóa bài viết thành công' };
   }
 }

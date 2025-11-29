@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState, useRef } from "react";
 import {
@@ -6,13 +5,12 @@ import {
   CornerDownRight,
   ChevronDown,
   ChevronUp,
-  MessageCircle,
   Smile,
   X,
 } from "lucide-react";
 import type { Comment as AppComment } from "@/types";
 import { createComment, getCommentsByPost } from "@/services/api";
-import anhmacdinh from "../../../image/anhmacdinh.jpg"
+import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import LikeComment from "./likecomments";
 
@@ -21,7 +19,10 @@ interface CommentFormProps {
   onCommentAdded?: () => void;
 }
 
-export default function CommentForm({ postId, onCommentAdded }: CommentFormProps) {
+export default function CommentForm({
+  postId,
+  onCommentAdded,
+}: CommentFormProps) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [comments, setComments] = useState<AppComment[]>([]);
@@ -29,7 +30,8 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
-  const [showComments, setShowComments] = useState(false);
+
+  // Đã xóa state showComments vì không cần dùng nữa
 
   const [showMainEmojiPicker, setShowMainEmojiPicker] = useState(false);
   const [showReplyEmojiPicker, setShowReplyEmojiPicker] = useState(false);
@@ -46,7 +48,10 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
           list.map((c) => ({
             ...c,
             children: c.children
-              ? c.children.flatMap((child) => [child, ...(child.children || [])])
+              ? c.children.flatMap((child) => [
+                  child,
+                  ...(child.children || []),
+                ])
               : [],
           }));
         setComments(flattenToTwoLevels(data));
@@ -87,7 +92,6 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
       const newContent =
         content.substring(0, start) + emojiData.emoji + content.substring(end);
       setContent(newContent);
-      // ❌ Không tắt picker để chọn nhiều emoji
     }
   };
 
@@ -98,9 +102,10 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
       const start = ref.selectionStart || 0;
       const end = ref.selectionEnd || 0;
       const newReplyText =
-        replyText.substring(0, start) + emojiData.emoji + replyText.substring(end);
+        replyText.substring(0, start) +
+        emojiData.emoji +
+        replyText.substring(end);
       setReplyText(newReplyText);
-      // ❌ Không tắt picker để chọn nhiều emoji
     }
   };
 
@@ -171,7 +176,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   };
 
   // ===== Toggle =====
-  const toggleReply = (commentId: number, username: string) => {
+  const toggleReply = (commentId: number, fullName: string) => {
     setShowReplyEmojiPicker(false);
     if (replyingTo === commentId) {
       setReplyingTo(null);
@@ -179,7 +184,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
       setReplyText("");
     } else {
       setReplyingTo(commentId);
-      setReplyTarget(username);
+      setReplyTarget(fullName);
       setReplyText("");
     }
   };
@@ -192,13 +197,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
     });
   };
 
-  const toggleShowComments = () => {
-    setShowComments(!showComments);
-    if (showComments) {
-      setShowMainEmojiPicker(false);
-      setShowReplyEmojiPicker(false);
-    }
-  };
+  // Đã xóa hàm toggleShowComments
 
   // ===== Render Comments =====
   const renderComments = (list: AppComment[]) => (
@@ -207,7 +206,6 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
         const isCollapsed = collapsed.has(c.id);
         const visibleChildren =
           c.children && isCollapsed ? c.children.slice(0, 2) : c.children;
-
         return (
           <div
             key={`parent-${c.id}`}
@@ -224,7 +222,9 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                 }`}
               />
               <div className="flex-1">
-                <div className="font-medium text-gray-800 dark:text-gray-100">{c.user.fullName}</div>
+                <div className="font-medium text-gray-800 dark:text-gray-100">
+                  {c.user.fullName}
+                </div>
                 <p className="text-gray-700 text-sm whitespace-pre-line dark:text-gray-300">
                   {c.content.startsWith("@") ? (
                     <>
@@ -287,7 +287,11 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                         <X size={16} />
                       </button>
                     </div>
-                    <EmojiPicker onEmojiClick={onReplyEmojiClick} height={300} lazyLoadEmojis />
+                    <EmojiPicker
+                      onEmojiClick={onReplyEmojiClick}
+                      height={300}
+                      lazyLoadEmojis
+                    />
                   </div>
                 )}
               </div>
@@ -321,7 +325,11 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                               <span className="text-blue-600 font-medium">
                                 {child.content.split(":")[0]}:
                               </span>{" "}
-                              {child.content.split(":").slice(1).join(":").trim()}
+                              {child.content
+                                .split(":")
+                                .slice(1)
+                                .join(":")
+                                .trim()}
                             </>
                           ) : (
                             child.content
@@ -330,12 +338,16 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                         <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 dark:text-gray-400">
                           <LikeComment commentId={child.id} />
                           <button
-                            onClick={() => toggleReply(child.id, child.user.username)}
+                            onClick={() =>
+                              toggleReply(child.id, child.user.username)
+                            }
                             className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                           >
                             <CornerDownRight size={13} /> Trả lời
                           </button>
-                          <span>{new Date(child.createdAt).toLocaleString()}</span>
+                          <span>
+                            {new Date(child.createdAt).toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -354,7 +366,9 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                           />
                           <button
                             type="button"
-                            onClick={() => setShowReplyEmojiPicker((prev) => !prev)}
+                            onClick={() =>
+                              setShowReplyEmojiPicker((prev) => !prev)
+                            }
                             className="ml-2 text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400"
                           >
                             <Smile size={18} />
@@ -367,7 +381,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                             <Send size={14} />
                           </button>
                         </div>
-                          {showReplyEmojiPicker && replyingTo === child.id && (
+                        {showReplyEmojiPicker && replyingTo === child.id && (
                           <div className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700">
                             <div className="flex justify-end">
                               <button
@@ -383,7 +397,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                               lazyLoadEmojis
                             />
                           </div>
-                          )}
+                        )}
                       </div>
                     )}
                   </div>
@@ -395,7 +409,8 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                   >
                     {isCollapsed ? (
                       <>
-                        <ChevronDown size={13} /> Hiện thêm {c.children.length - 2} phản hồi
+                        <ChevronDown size={13} /> Hiện thêm{" "}
+                        {c.children.length - 2} phản hồi
                       </>
                     ) : (
                       <>
@@ -452,21 +467,19 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                 <X size={16} />
               </button>
             </div>
-            <EmojiPicker onEmojiClick={onMainEmojiClick} height={350} lazyLoadEmojis />
+            <EmojiPicker
+              onEmojiClick={onMainEmojiClick}
+              height={350}
+              lazyLoadEmojis
+            />
           </div>
         )}
       </div>
 
-      {/* Nút hiển thị bình luận */}
-      <button
-        onClick={toggleShowComments}
-        className="mt-3 flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 dark:text-gray-300"
-      >
-        <MessageCircle size={18} />
-        {showComments ? "Ẩn bình luận" : "Hiện bình luận"}
-      </button>
-
-      {showComments && <div className="mt-3 border-t pt-3 dark:border-gray-700">{renderComments(comments)}</div>}
+      {/* Hiển thị bình luận luôn luôn, không cần nút bấm */}
+      <div className="mt-3 border-t pt-3 dark:border-gray-700">
+        {renderComments(comments)}
+      </div>
     </div>
   );
 }
