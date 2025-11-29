@@ -1,4 +1,4 @@
-import { del, get, post } from "@/utils/request";
+import { del, get, patch, post } from "@/utils/request";
 import type { like, Post, User, Comment as AppComment } from "@/types";
 
 
@@ -12,6 +12,20 @@ export async function createPost(formData: FormData, token: string): Promise<Pos
     },
   });
   return result;
+}
+
+export async function deletePost(postId: number, token: string): Promise<void> {
+  // Backend endpoint: @Delete(':id') -> /post/123
+  await del(`/post/${postId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+export async function updatePost(postId: number, data: any, token: string): Promise<any> {
+  return await patch(`/post/${postId}`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 // dang ki
 export async function Register(formData: FormData): Promise<User> {
@@ -155,3 +169,4 @@ export async function getLikeCount(
   const result = await get<{ count: number }>(`/likes/count${query}`);
   return result;
 }
+

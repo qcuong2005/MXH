@@ -18,12 +18,13 @@ export interface Post {
   content: string;
   image_url?: string;
   video_url?: string;
-  visibility: string;
+  visibility: 'public' | 'friends' | 'private';
   user?: {
     username?: string;
     avatar?: string;
     fullName?: string;
   };
+  
   createdAt: string;
 }
 

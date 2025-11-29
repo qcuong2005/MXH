@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { MessageCircle, Share2 } from "lucide-react";
+// 1. Thêm import icon Globe, Users, Lock
+import { MessageCircle, Share2, Globe, Users, Lock } from "lucide-react";
 import CreatePosts from "./CreatePosts";
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
 import type { Post } from "../../types";
@@ -21,6 +22,19 @@ export default function Feed() {
   const observer = useRef<IntersectionObserver | null>(null);
 
   const limit = 5; // 👈 Số bài viết mỗi lần tải
+
+  // 2. Hàm lấy Icon dựa trên trạng thái Visibility
+  const getVisibilityIcon = (visibility: string) => {
+    switch (visibility) {
+      case "private":
+        return <Lock size={14} className="text-gray-500" />;
+      case "friends":
+        return <Users size={14} className="text-gray-500" />;
+      case "public":
+      default:
+        return <Globe size={14} className="text-gray-500" />;
+    }
+  };
 
   // 🔹 Đếm tất cả comment + reply
   const countAllComments = (list: AppComment[]): number => {
@@ -142,7 +156,9 @@ export default function Feed() {
       <CreatePosts posts={posts} setPosts={setPosts} />
 
       {posts.length === 0 && !loading ? (
-        <p className="text-center text-gray-500 dark:text-gray-400">Chưa có bài viết nào.</p>
+        <p className="text-center text-gray-500 dark:text-gray-400">
+          Chưa có bài viết nào.
+        </p>
       ) : (
         <ul className="space-y-6">
           {posts.map((p, index) => {
@@ -164,9 +180,26 @@ export default function Feed() {
                     <h4 className="font-semibold text-gray-800 truncate dark:text-gray-100">
                       {p.user?.fullName || "Người dùng ẩn danh"}
                     </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(p.createdAt).toLocaleString()}
-                    </p>
+                    
+                    {/* 3. Cập nhật hiển thị Ngày giờ + Icon Visibility */}
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <span>{new Date(p.createdAt).toLocaleString()}</span>
+                      <span>•</span>
+                      {/* Tooltip hiển thị text khi hover vào icon */}
+                      <div
+                        title={
+                          p.visibility === "public"
+                            ? "Công khai"
+                            : p.visibility === "friends"
+                            ? "Bạn bè"
+                            : "Chỉ mình tôi"
+                        }
+                        className="flex items-center"
+                      >
+                        {getVisibilityIcon(p.visibility)}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
