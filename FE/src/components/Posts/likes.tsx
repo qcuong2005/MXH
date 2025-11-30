@@ -6,6 +6,7 @@ import { createLike, getLikeCount, getLikeStatus } from "@/services/api";
 
 interface LikesProps {
   postId: number;
+  type:string
 }
 
 export default function Likes({ postId }: LikesProps) {

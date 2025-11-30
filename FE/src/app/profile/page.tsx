@@ -1,46 +1,10 @@
-// "use client";
+// File: src/app/profile/page.tsx
 
-// import Sidebar from "@/components/Sidebar";
-// import Header from "@/components/Header";
-// import ProfileHeader from "@/components/ProfileHeader";
+import ProfileContent from "./ProfileContent";
 
-// export default function Profile() {
-//   return (
-//     <div className="flex h-screen bg-gray-50">
-//       <Sidebar />
-//       <div className="flex-1 flex flex-col">
-//         <Header />
-//         <main className="flex-1 overflow-y-auto">
-//           <div className="max-w-5xl mx-auto p-4 md:p-8">
-//             <ProfileHeader />
-//           </div>
-//         </main>
-//       </div>
-//     </div>
-//   );
-// }
-"use client";
+// Đây là cấu hình giúp bạn sửa lỗi prerender
+export const dynamic = "force-dynamic";
 
-import { useSearchParams } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-import ProfileHeader from "@/components/ProfileHeader";
-
-export default function Profile() {
-  const searchParams = useSearchParams();
-  const paramUserId = searchParams.get("userId") ? Number(searchParams.get("userId")) : undefined;
-  console.log(paramUserId)
-  return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto p-4 md:p-8">
-            <ProfileHeader userId={paramUserId} />
-          </div>
-        </main>
-      </div>
-    </div>
-  );
+export default function ProfilePage() {
+  return <ProfileContent />;
 }

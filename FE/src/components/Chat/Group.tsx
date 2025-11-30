@@ -99,7 +99,7 @@ export default function CreateGroupModal({ onClose, onGroupCreated }: CreateGrou
       };
 
       // Gọi API (hỗ trợ FormData chỉ với avatar)
-      const newGroup = await createGroupApi(token, dto, avatarImage); 
+      const newGroup = await createGroupApi(token, dto, avatarImage || undefined); 
 
       // (Realtime) Báo cho 'cha' (ChatPage) biết
       onGroupCreated(newGroup);
