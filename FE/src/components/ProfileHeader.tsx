@@ -1,16 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+// 1. Import useRouter
+import { useSearchParams, useRouter } from "next/navigation"; 
 import { 
   MapPin, Calendar, MessageCircle, Share2, 
   Globe, Users, Lock, Trash2, ChevronDown 
 } from "lucide-react"; 
-import { formatDate, formatNumber } from "@/lib/utisls";
+import { formatDate, formatNumber } from "@/lib/utisls"; // Lưu ý: check lại tên file utils/utisls
 import { fetchAPI } from "@/lib/api";
 import anhmacdinh from "../../image/anhmacdinh.jpg";
 import Likes from "./Posts/likes";
 import { getCommentsByPost, deletePost, updatePost } from "@/services/api"; 
+// 2. Import service nhắn tin
+import { ensureConversation } from "@/services/message"; 
+
 import type { Post } from "../types";
 import type { Comment as AppComment } from "../types";
 import CommentForm from "./Posts/Comments";
@@ -20,6 +24,7 @@ interface ProfileHeaderProps {
 }
 
 export default function ProfileHeader({ userId }: ProfileHeaderProps) {
+  const router = useRouter(); // 3. Khởi tạo router
   const searchParams = useSearchParams();
   const paramUserId = searchParams.get("userId") ? Number(searchParams.get("userId")) : undefined;
   
@@ -75,7 +80,6 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
 
         // 2. Lấy danh sách bài viết
         const res = await fetchAPI(`/post/user/${effectiveUserId}`);
-        // Xử lý logic nếu API trả về { data: [], total: ... } hoặc []
         const userPosts: Post[] = Array.isArray(res) ? res : (res.data || []);
         
         setPosts(userPosts);
@@ -120,30 +124,27 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
   };
 
   // --- FIX: Xử lý Upload Avatar ---
- // Trong ProfileHeader.tsx
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+    const formData = new FormData();
+    formData.append("avatar", file);
 
-  const formData = new FormData();
-  formData.append("avatar", file);
+    try {
+      const response = await fetchAPI("/users/upload-avatar", {
+        method: "POST",
+        body: formData,
+      });
 
-  try {
-    // Gọi fetchAPI bình thường, không cần tạo hàm uploadAvatar riêng nữa
-    const response = await fetchAPI("/users/upload-avatar", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (response?.avatar) {
-      setNewAvatar(response.avatar);
+      if (response?.avatar) {
+        setNewAvatar(response.avatar);
+      }
+    } catch (error) {
+      console.error("Lỗi upload avatar:", error);
+      alert("Lỗi upload ảnh.");
     }
-  } catch (error) {
-    console.error("Lỗi upload avatar:", error);
-    alert("Lỗi upload ảnh.");
-  }
-};
+  };
 
   const handleEditAvatar = () => fileInputRef.current?.click();
 
@@ -170,7 +171,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
         
         await deletePost(postId, token);
         
-        // Cập nhật UI ngay lập tức
         setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
     } catch (error) {
         console.error("Lỗi khi xóa bài viết:", error);
@@ -184,18 +184,50 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      // Optimistic Update: Cập nhật giao diện trước khi gọi API
       setPosts((prevPosts) =>
         prevPosts.map((p) =>
           p.id === postId ? { ...p, visibility: newVisibility as any } : p
         )
       );
 
-      // Gọi API cập nhật ngầm
       await updatePost(postId, { visibility: newVisibility }, token);
     } catch (error) {
       console.error("Lỗi đổi trạng thái:", error);
       alert("Không thể cập nhật trạng thái.");
+    }
+  };
+
+  // --- 4. HÀM XỬ LÝ NHẮN TIN (Mới thêm) ---
+  const handleSendMessage = async () => {
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      alert("Bạn chưa đăng nhập!");
+      return;
+    }
+
+    if (!effectiveUserId) {
+        alert("Không tìm thấy người dùng này.");
+        return;
+    }
+
+    try {
+      // Gọi API đảm bảo có hội thoại (tạo mới hoặc lấy cũ)
+      const conversation = await ensureConversation(token, effectiveUserId);
+
+      if (conversation?.id) {
+        // Lưu ID hội thoại và ID người bạn chat để trang Messages dùng
+        localStorage.setItem("selectedConversationId", conversation.id.toString());
+        localStorage.setItem("selectedFriendId", effectiveUserId.toString());
+
+        // Chuyển hướng
+        router.push("/messages");
+      } else {
+        throw new Error("Không lấy được ID hội thoại.");
+      }
+    } catch (error) {
+      console.error("❌ Lỗi khi mở hội thoại:", error);
+      alert("Không thể mở hội thoại. Vui lòng thử lại sau!");
     }
   };
 
@@ -231,7 +263,14 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
           {!isOwnProfile && (
             <div className="flex space-x-3 mt-4 md:mt-0">
               <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Follow</button>
-              <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600">Message</button>
+              
+              {/* 5. Gắn sự kiện onClick vào nút Message */}
+              <button 
+                onClick={handleSendMessage}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                Message
+              </button>
             </div>
           )}
         </div>
@@ -274,12 +313,10 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                             
                             {/* === SELECT VISIBILITY === */}
                             <div className="relative group flex items-center gap-1 cursor-pointer bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full hover:bg-gray-200 transition-colors">
-                                {/* Icon + Text */}
                                 {getVisibilityIcon(p.visibility)}
                                 <span className="hidden sm:inline">{getVisibilityText(p.visibility)}</span>
                                 {isOwnProfile && <ChevronDown size={12} />}
 
-                                {/* Select box tàng hình phủ lên trên */}
                                 {isOwnProfile && (
                                     <select
                                         value={p.visibility}
@@ -297,7 +334,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                     </div>
                   </div>
 
-                  {/* Nút Xóa Bài Viết */}
                   {isOwnProfile && (
                       <button 
                         onClick={() => handleDeletePost(p.id)} 

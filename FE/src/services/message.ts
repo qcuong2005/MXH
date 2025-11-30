@@ -17,6 +17,19 @@ export async function ensureConversation(token: string, otherUserId: number): Pr
   );
 }
 
+export async function getConversationsApi(token: string) {
+  // Gọi API GET /conversations từ Backend
+  // (Backend cần có endpoint này trả về danh sách những người đã nhắn tin)
+  return await get(
+    "/conversations", 
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
 export async function sendMessageApi(
   token: string,
   conversationId: number,

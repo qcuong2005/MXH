@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-// 1. Thêm import icon Globe, Users, Lock
+// 1. Import Link từ next/link
+import Link from "next/link"; 
 import { MessageCircle, Share2, Globe, Users, Lock } from "lucide-react";
 import CreatePosts from "./CreatePosts";
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
@@ -21,23 +22,18 @@ export default function Feed() {
   const [openCommentPost, setOpenCommentPost] = useState<number | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
 
-  const limit = 5; // 👈 Số bài viết mỗi lần tải
+  const limit = 5;
 
-  // 2. Hàm lấy Icon dựa trên trạng thái Visibility
   const getVisibilityIcon = (visibility: string) => {
     switch (visibility) {
-      case "private":
-        return <Lock size={14} className="text-gray-500" />;
-      case "friends":
-        return <Users size={14} className="text-gray-500" />;
-      case "public":
-      default:
-        return <Globe size={14} className="text-gray-500" />;
+      case "private": return <Lock size={14} className="text-gray-500" />;
+      case "friends": return <Users size={14} className="text-gray-500" />;
+      case "public": default: return <Globe size={14} className="text-gray-500" />;
     }
   };
 
-  // 🔹 Đếm tất cả comment + reply
   const countAllComments = (list: AppComment[]): number => {
+    if (!list) return 0;
     let total = 0;
     for (const c of list) {
       total += 1;
@@ -46,7 +42,6 @@ export default function Feed() {
     return total;
   };
 
-  // 🔹 Load bài viết (theo phân trang)
   const loadPosts = useCallback(async () => {
     if (loading || !hasMore) return;
     setLoading(true);
@@ -60,13 +55,11 @@ export default function Feed() {
       const result = Array.isArray(res) ? { data: res, total: res.length } : res;
       const newPosts: Post[] = result.data as Post[];
 
-      // ✅ Nếu hết bài → dừng
       if (newPosts.length === 0) {
         setHasMore(false);
         return;
       }
 
-      // Tạo fake share count + đếm comment
       const fakeShares: Record<number, number> = {};
       const initialComments: Record<number, number> = {};
 
@@ -82,7 +75,6 @@ export default function Feed() {
         })
       );
 
-      // ✅ Gộp bài viết mới, loại trùng key
       setPosts((prev) => {
         const existingIds = new Set(prev.map((p: Post) => p.id));
         const uniqueNew = newPosts.filter((p: Post) => !existingIds.has(p.id));
@@ -99,12 +91,10 @@ export default function Feed() {
     }
   }, [page, hasMore, loading]);
 
-  // 🔹 Load trang đầu tiên
   useEffect(() => {
     loadPosts();
   }, [page]);
 
-  // 🔹 Quan sát bài viết cuối để load thêm khi chạm màn hình
   const lastPostRef = useCallback(
     (node: HTMLLIElement | null) => {
       if (loading) return;
@@ -121,13 +111,8 @@ export default function Feed() {
     [loading, hasMore]
   );
 
-  // 🔹 Xử lý chia sẻ
   const handleShare = async (post: Post) => {
-    setShareCounts((prev) => ({
-      ...prev,
-      [post.id]: (prev[post.id] || 0) + 1,
-    }));
-
+    setShareCounts((prev) => ({ ...prev, [post.id]: (prev[post.id] || 0) + 1, }));
     if (navigator.share) {
       try {
         await navigator.share({
@@ -135,34 +120,29 @@ export default function Feed() {
           text: post.content,
           url: window.location.href,
         });
-      } catch {
-        console.warn("Người dùng huỷ chia sẻ.");
-      }
-    } else {
-      alert("Trình duyệt của bạn không hỗ trợ chia sẻ.");
-    }
+      } catch { console.warn("Người dùng huỷ chia sẻ."); }
+    } else { alert("Trình duyệt không hỗ trợ chia sẻ."); }
   };
 
   const handleCommentAdded = (postId: number) => {
-    setCommentCounts((prev) => ({
-      ...prev,
-      [postId]: (prev[postId] || 0) + 1,
-    }));
+    setCommentCounts((prev) => ({ ...prev, [postId]: (prev[postId] || 0) + 1, }));
   };
 
-  // 🧠 Hiển thị
   return (
     <div className="mx-auto px-3 sm:px-6 lg:px-10 pt-2 pb-6 w-full max-w-[900px] xl:max-w-[1100px]">
       <CreatePosts posts={posts} setPosts={setPosts} />
 
       {posts.length === 0 && !loading ? (
-        <p className="text-center text-gray-500 dark:text-gray-400">
-          Chưa có bài viết nào.
-        </p>
+        <p className="text-center text-gray-500 dark:text-gray-400">Chưa có bài viết nào.</p>
       ) : (
         <ul className="space-y-6">
           {posts.map((p, index) => {
             const isLast = index === posts.length - 1;
+            
+            // 2. TẠO URL DẠNG Query Parameter (?userId=...)
+            // Nếu có user.id thì tạo link, nếu không thì fallback về trang chủ hoặc trang hiện tại
+            const profileUrl = p.user?.id ? `/profile?userId=${p.user.id}` : "#";
+
             return (
               <li
                 ref={isLast ? lastPostRef : null}
@@ -171,28 +151,31 @@ export default function Feed() {
               >
                 {/* USER INFO */}
                 <div className="flex items-center mb-3">
-                  <img
-                    src={p.user?.avatar || anhmacdinh.src}
-                    alt="avatar"
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border dark:border-gray-700"
-                  />
+                  
+                  {/* 3. Bọc Avatar bằng Link */}
+                  <Link href={profileUrl} className="shrink-0 mr-3">
+                    <img
+                      src={p.user?.avatar || anhmacdinh.src}
+                      alt="avatar"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border dark:border-gray-700 hover:opacity-90 transition-opacity"
+                      onError={(e) => { e.currentTarget.src = anhmacdinh.src; }}
+                    />
+                  </Link>
+
                   <div className="min-w-0">
-                    <h4 className="font-semibold text-gray-800 truncate dark:text-gray-100">
-                      {p.user?.fullName || "Người dùng ẩn danh"}
-                    </h4>
+                    {/* 4. Bọc Tên bằng Link */}
+                    <Link href={profileUrl} className="hover:underline decoration-blue-500">
+                        <h4 className="font-semibold text-gray-800 truncate dark:text-gray-100">
+                        {p.user?.fullName || "Người dùng ẩn danh"}
+                        </h4>
+                    </Link>
                     
-                    {/* 3. Cập nhật hiển thị Ngày giờ + Icon Visibility */}
                     <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <span>{new Date(p.createdAt).toLocaleString()}</span>
                       <span>•</span>
-                      {/* Tooltip hiển thị text khi hover vào icon */}
                       <div
                         title={
-                          p.visibility === "public"
-                            ? "Công khai"
-                            : p.visibility === "friends"
-                            ? "Bạn bè"
-                            : "Chỉ mình tôi"
+                          p.visibility === "public" ? "Công khai" : p.visibility === "friends" ? "Bạn bè" : "Chỉ mình tôi"
                         }
                         className="flex items-center"
                       >
@@ -211,15 +194,18 @@ export default function Feed() {
                   {p.content}
                 </p>
 
-                {p.image_url && (
+                {/* IMAGE SAFE CHECK */}
+                {p.image_url && p.image_url.trim() !== "" && (
                   <img
                     src={p.image_url}
                     alt="post"
                     className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 )}
 
-                {p.video_url && (
+                {/* VIDEO SAFE CHECK */}
+                {p.video_url && p.video_url.trim() !== "" && (
                   <video
                     controls
                     className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700"
@@ -230,12 +216,10 @@ export default function Feed() {
 
                 {/* INTERACTION BAR */}
                 <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 text-sm mt-4 border-t pt-3 dark:text-gray-300 dark:border-gray-700">
-                  <Likes postId={p.id} />
+                  <Likes postId={p.id}  type="post"/>
 
                   <button
-                    onClick={() =>
-                      setOpenCommentPost(openCommentPost === p.id ? null : p.id)
-                    }
+                    onClick={() => setOpenCommentPost(openCommentPost === p.id ? null : p.id)}
                     className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                   >
                     <MessageCircle size={18} />
@@ -266,7 +250,6 @@ export default function Feed() {
         </ul>
       )}
 
-      {/* Loading animation */}
       {loading && (
         <div className="flex justify-center py-6">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-600 border-solid"></div>

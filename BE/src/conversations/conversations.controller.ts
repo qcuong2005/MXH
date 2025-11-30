@@ -4,6 +4,7 @@ import {
   Body,
   UseGuards,
   Req,
+  Get,
 } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -21,5 +22,10 @@ export class ConversationsController {
   async ensureConversation(@Req() req, @Body('otherUserId') otherUserId: number) {
     const userId = req.user.id; // ✅ lấy từ payload trong token
     return this.conversationsService.ensureConversation(userId, otherUserId);
+  }
+  @Get()
+  async getUserConversations(@Req() req) {
+    const userId = req.user.id;
+    return this.conversationsService.getUserConversations(userId);
   }
 }

@@ -23,14 +23,16 @@ export async function createGroupApi(
   const formData = new FormData();
   
   // Append fields từ DTO
-  Object.keys(dto).forEach(key => {
-    if (key === 'member_ids' && Array.isArray(dto[key])) {
-      // Handle array as comma-separated string (backend sẽ parse)
-      formData.append(key, dto[key].join(','));
+ Object.keys(dto).forEach(key => {
+    // Ép kiểu (dto as any) để TypeScript không bắt bẻ nữa
+    const value = (dto as any)[key]; 
+
+    if (key === 'member_ids' && Array.isArray(value)) {
+        formData.append(key, value.join(','));
     } else {
-      formData.append(key, dto[key] as string);
+        formData.append(key, value as string);
     }
-  });
+});
 
   // 👈 GIỮ: Append avatar_image nếu có
   if (avatarImage) {

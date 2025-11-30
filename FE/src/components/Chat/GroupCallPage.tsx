@@ -31,9 +31,9 @@ const VideoCard = ({ peer, isVideo, isSelf, memberInfo }: any) => {
     if (!peer || !ref.current) return;
 
     const handleStream = (remoteStream: MediaStream) => {
-      if (ref.current.srcObject !== remoteStream) {
+      if (ref.current && ref.current.srcObject !== remoteStream) {
         ref.current.srcObject = remoteStream;
-        ref.current.play().catch(e => {
+        ref.current.play().catch((e) => {
           if (e.name !== "AbortError") console.error("Play error:", e);
         });
       }
@@ -67,7 +67,13 @@ const VideoCard = ({ peer, isVideo, isSelf, memberInfo }: any) => {
       {!isVideo && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/90 z-10">
           <div className="relative w-20 h-20 rounded-full border-2 border-gray-600 mb-2 overflow-hidden">
-            <Image src={memberInfo?.avatar || anhmacdinh.src} alt="Avatar" fill sizes="33vw" className="object-cover" />
+            <Image
+              src={memberInfo?.avatar || anhmacdinh.src}
+              alt="Avatar"
+              fill
+              sizes="33vw"
+              className="object-cover"
+            />
           </div>
           <div className="flex gap-1 h-3 items-end">
             <span className="w-1 bg-green-500 h-full animate-bounce"></span>
@@ -78,8 +84,12 @@ const VideoCard = ({ peer, isVideo, isSelf, memberInfo }: any) => {
       )}
 
       <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-white text-xs z-20 flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full ${isSelf ? 'bg-blue-500' : 'bg-green-500'}`}></span>
-        {isSelf ? "Bạn" : (memberInfo?.name || "Thành viên")}
+        <span
+          className={`w-2 h-2 rounded-full ${
+            isSelf ? "bg-blue-500" : "bg-green-500"
+          }`}
+        ></span>
+        {isSelf ? "Bạn" : memberInfo?.name || "Thành viên"}
       </div>
     </div>
   );
@@ -96,7 +106,10 @@ export default function GroupCallPage({
 }: GroupCallProps) {
   const { socket } = useSocket();
   const [peers, setPeers] = useState<any[]>([]);
-  const peersRef = useRef<Map<string, { peer: Peer.Instance; userId: number }>>(new Map());
+  // MỚI (Đã sửa)
+  const peersRef = useRef<Map<string, { peer: any; userId: number }>>(
+    new Map()
+  );
 
   const hasJoined = useRef(false);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -107,12 +120,14 @@ export default function GroupCallPage({
   const [duration, setDuration] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => setDuration(d => d + 1), 1000);
+    const timer = setInterval(() => setDuration((d) => d + 1), 1000);
     return () => clearInterval(timer);
   }, []);
 
   const formatTime = (s: number) => {
-    const m = Math.floor(s / 60).toString().padStart(2, "0");
+    const m = Math.floor(s / 60)
+      .toString()
+      .padStart(2, "0");
     const sec = (s % 60).toString().padStart(2, "0");
     return `${m}:${sec}`;
   };
@@ -123,10 +138,16 @@ export default function GroupCallPage({
     peersRef.current.forEach(({ peer }) => {
       if (peer.destroyed) return;
       // Xóa track cũ
-      peer.removeTrack(peer.getSenders()?.[0]?.track || null, localStreamRef.current!);
-      peer.removeTrack(peer.getSenders()?.[1]?.track || null, localStreamRef.current!);
+      peer.removeTrack(
+        peer.getSenders()?.[0]?.track || null,
+        localStreamRef.current!
+      );
+      peer.removeTrack(
+        peer.getSenders()?.[1]?.track || null,
+        localStreamRef.current!
+      );
       // Thêm lại track mới
-      localStreamRef.current!.getTracks().forEach(track => {
+      localStreamRef.current!.getTracks().forEach((track) => {
         peer.addTrack(track, localStreamRef.current!);
       });
     });
@@ -166,7 +187,7 @@ export default function GroupCallPage({
           { urls: "stun:stun1.l.google.com:19302" },
         ],
       },
-    });
+    } as any);
 
     peer.on("signal", (signal) => {
       socket?.emit("sendingSignal", {
@@ -179,8 +200,9 @@ export default function GroupCallPage({
 
     // Thêm track ngay khi có stream
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        peer.addTrack(track, localStreamRef.current!);
+      localStreamRef.current.getTracks().forEach((track) => {
+        // --- Code MỚI (Thêm as any) ---
+        (peer as any).addTrack(track, localStreamRef.current!);
       });
     }
 
@@ -197,15 +219,15 @@ export default function GroupCallPage({
           { urls: "stun:stun1.l.google.com:19302" },
         ],
       },
-    });
+    } as any);
 
     peer.on("signal", (signal) => {
       socket?.emit("returningSignal", { signal, callerID: callerSocketId });
     });
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        peer.addTrack(track, localStreamRef.current!);
+      localStreamRef.current.getTracks().forEach((track) => {
+        (peer as any).addTrack(track, localStreamRef.current!);
       });
     }
 
@@ -214,16 +236,18 @@ export default function GroupCallPage({
   };
 
   const updatePeersState = () => {
-    const arr = Array.from(peersRef.current.entries()).map(([socketId, val]) => ({
-      peerID: socketId,
-      peer: val.peer,
-      userId: val.userId,
-    }));
+    const arr = Array.from(peersRef.current.entries()).map(
+      ([socketId, val]) => ({
+        peerID: socketId,
+        peer: val.peer,
+        userId: val.userId,
+      })
+    );
     setPeers(arr);
   };
 
   const cleanup = () => {
-    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    localStreamRef.current?.getTracks().forEach((t) => t.stop());
     socket?.emit("leaveGroupCall", { groupId });
     peersRef.current.forEach(({ peer }) => peer.destroy());
     peersRef.current.clear();
@@ -237,7 +261,7 @@ export default function GroupCallPage({
         try {
           await endGroupCallApi(groupId);
           socket?.emit("endGroupCall", { groupId });
-        } catch (e) { }
+        } catch (e) {}
       } else return;
     }
     cleanup();
@@ -259,31 +283,46 @@ export default function GroupCallPage({
         socket.emit("joinGroupCall", { groupId });
 
         // Nhận danh sách người đang trong phòng
-        socket.on("allUsersInCall", (usersInRoom: { socketId: string; userId: number }[]) => {
-          usersInRoom.forEach((user) => {
-            if (!peersRef.current.has(user.socketId)) {
-              const peer = createPeer(user.socketId, socket.id!);
-              peersRef.current.set(user.socketId, { peer, userId: user.userId });
-            }
-          });
-          updatePeersState();
-        });
+        socket.on(
+          "allUsersInCall",
+          (usersInRoom: { socketId: string; userId: number }[]) => {
+            usersInRoom.forEach((user) => {
+              if (!peersRef.current.has(user.socketId)) {
+                const peer = createPeer(user.socketId, socket.id!);
+                peersRef.current.set(user.socketId, {
+                  peer,
+                  userId: user.userId,
+                });
+              }
+            });
+            updatePeersState();
+          }
+        );
 
         // Người mới gửi signal
-        socket.on("userJoinedSignal", (payload: { signal: any; callerID: string; userId: number }) => {
-          if (peersRef.current.has(payload.callerID)) return;
-          const peer = addPeer(payload.signal, payload.callerID);
-          peersRef.current.set(payload.callerID, { peer, userId: payload.userId });
-          updatePeersState();
-        });
+        socket.on(
+          "userJoinedSignal",
+          (payload: { signal: any; callerID: string; userId: number }) => {
+            if (peersRef.current.has(payload.callerID)) return;
+            const peer = addPeer(payload.signal, payload.callerID);
+            peersRef.current.set(payload.callerID, {
+              peer,
+              userId: payload.userId,
+            });
+            updatePeersState();
+          }
+        );
 
         // Nhận tín hiệu trả về
-        socket.on("receivingReturnedSignal", (payload: { signal: any; id: string }) => {
-          const item = peersRef.current.get(payload.id);
-          if (item && !item.peer.destroyed) {
-            item.peer.signal(payload.signal);
+        socket.on(
+          "receivingReturnedSignal",
+          (payload: { signal: any; id: string }) => {
+            const item = peersRef.current.get(payload.id);
+            if (item && !item.peer.destroyed) {
+              item.peer.signal(payload.signal);
+            }
           }
-        });
+        );
 
         // Người rời phòng
         socket.on("user-left-call", ({ socketId }: { socketId: string }) => {
@@ -317,9 +356,12 @@ export default function GroupCallPage({
       {/* Header */}
       <div className="h-16 flex items-center justify-between px-6 bg-gray-900 border-b border-gray-800">
         <h2 className="font-bold flex gap-2 items-center">
-          {groupName} <span className="text-xs bg-gray-800 px-2 py-1 rounded">Group</span>
+          {groupName}{" "}
+          <span className="text-xs bg-gray-800 px-2 py-1 rounded">Group</span>
         </h2>
-        <span className="text-sm text-green-400 font-mono">{formatTime(duration)}</span>
+        <span className="text-sm text-green-400 font-mono">
+          {formatTime(duration)}
+        </span>
       </div>
 
       {/* Video Grid */}
@@ -336,12 +378,20 @@ export default function GroupCallPage({
           {!isCamOn && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-800/90 z-10">
               <div className="relative w-20 h-20 rounded-full border-2 border-blue-500 overflow-hidden mb-2">
-                <Image src={currentUser.avatar || anhmacdinh.src} alt="Me" fill sizes="33vw" className="object-cover" />
+                <Image
+                  src={currentUser.avatar || anhmacdinh.src}
+                  alt="Me"
+                  fill
+                  sizes="33vw"
+                  className="object-cover"
+                />
               </div>
               <span className="text-sm text-gray-400">Bạn</span>
             </div>
           )}
-          <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">Bạn</div>
+          <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs">
+            Bạn
+          </div>
         </div>
 
         {/* Video người khác */}
@@ -363,7 +413,11 @@ export default function GroupCallPage({
       <div className="h-24 bg-gray-900 flex items-center justify-center gap-8 border-t border-gray-800">
         <button
           onClick={toggleMic}
-          className={`p-4 rounded-full transition-all ${isMicOn ? "bg-gray-800 hover:bg-gray-700" : "bg-red-600 hover:bg-red-700"}`}
+          className={`p-4 rounded-full transition-all ${
+            isMicOn
+              ? "bg-gray-800 hover:bg-gray-700"
+              : "bg-red-600 hover:bg-red-700"
+          }`}
         >
           {isMicOn ? <Mic size={28} /> : <MicOff size={28} />}
         </button>
@@ -377,7 +431,11 @@ export default function GroupCallPage({
 
         <button
           onClick={toggleCam}
-          className={`p-4 rounded-full transition-all ${isCamOn ? "bg-gray-800 hover:bg-gray-700" : "bg-red-600 hover:bg-red-700"}`}
+          className={`p-4 rounded-full transition-all ${
+            isCamOn
+              ? "bg-gray-800 hover:bg-gray-700"
+              : "bg-red-600 hover:bg-red-700"
+          }`}
           disabled={!initialIsVideo}
         >
           {isCamOn ? <Video size={28} /> : <VideoOff size={28} />}
