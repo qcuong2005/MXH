@@ -1,7 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
-
 
 @Entity('users')
 export class User {
@@ -38,14 +37,19 @@ export class User {
   @Column({ type: 'boolean', default: false })
   is_online?: boolean = false;
 
-  @ApiProperty({
-    description: 'The user selects their gender.',
-    example: 'Boys, Girls, or Other.',
-    enum: ['Boys', 'Girls', 'Other'],
-    required: false,
-  })
-  @Column({ type: 'varchar', length: 30 })
+  @ApiProperty({ description: 'The user selects their gender.', example: 'Boys, Girls, or Other.', enum: ['Boys', 'Girls', 'Other'], required: false })
+  @Column({ type: 'varchar', length: 30, default: 'Other' }) // Thêm default để tránh lỗi
   gender: String;
+
+  // --- MỚI: Phân quyền Admin ---
+  @ApiProperty({ description: 'User role', example: 'user', default: 'user' })
+  @Column({ default: 'user' }) // 'admin' hoặc 'user'
+  role: string;
+
+  // --- MỚI: Tích xanh ---
+  @ApiProperty({ description: 'Verified status (Blue tick)', example: false, default: false })
+  @Column({ default: false })
+  is_verified: boolean;
 
   @ApiProperty({ description: 'User creation date' })
   @CreateDateColumn()
@@ -54,5 +58,4 @@ export class User {
   @ApiProperty({ description: 'User last update date' })
   @UpdateDateColumn()
   updatedAt: Date;
-
 }

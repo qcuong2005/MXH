@@ -170,3 +170,18 @@ export async function getLikeCount(
   return result;
 }
 
+export async function updateUserProfile(
+  token: string,
+  data: { fullName?: string; bio?: string }
+): Promise<User> {
+  // data có thể chứa { fullName: "...", bio: "..." } hoặc chỉ 1 trong 2
+  const result = await patch<User>("/users/profile/update", data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+  
+  return result;
+}
