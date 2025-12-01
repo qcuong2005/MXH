@@ -139,7 +139,9 @@ export default function CommentForm({
     if (!token) return alert("Bạn cần đăng nhập để trả lời.");
     setLoading(true);
     try {
-      const fullText = replyTarget ? `@${replyTarget}: ${replyText}` : replyText;
+      const fullText = replyTarget
+        ? `@${replyTarget}: ${replyText}`
+        : replyText;
       const newReply = await createComment(token, postId, fullText, replyingTo);
       (newReply as any)._isNew = true;
       setComments((prev) =>
@@ -147,7 +149,9 @@ export default function CommentForm({
           if (c.id === replyingTo) {
             return { ...c, children: [...(c.children || []), newReply] };
           }
-          const childIndex = c.children?.findIndex((ch) => ch.id === replyingTo);
+          const childIndex = c.children?.findIndex(
+            (ch) => ch.id === replyingTo
+          );
           if (childIndex !== undefined && childIndex !== -1 && c.children) {
             const updated = [...c.children];
             updated.splice(childIndex + 1, 0, newReply);
@@ -200,6 +204,7 @@ export default function CommentForm({
   // Đã xóa hàm toggleShowComments
 
   // ===== Render Comments =====
+  // ===== Render Comments =====
   const renderComments = (list: AppComment[]) => (
     <div className="space-y-4">
       {list.map((c) => {
@@ -213,6 +218,7 @@ export default function CommentForm({
               (c as any)._isNew ? "animate-fadeSlide" : ""
             }`}
           >
+            {/* --- BÌNH LUẬN CHA --- */}
             <div className="flex items-start gap-2 mb-2">
               <img
                 src={c.user.avatar || anhmacdinh.src}
@@ -222,6 +228,7 @@ export default function CommentForm({
                 }`}
               />
               <div className="flex-1">
+                {/* Tên người dùng cha: FullName */}
                 <div className="font-medium text-gray-800 dark:text-gray-100">
                   {c.user.fullName}
                 </div>
@@ -240,7 +247,7 @@ export default function CommentForm({
                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-1 dark:text-gray-400">
                   <LikeComment commentId={c.id} />
                   <button
-                    onClick={() => toggleReply(c.id, c.user.username)}
+                    onClick={() => toggleReply(c.id, c.user.fullName)}
                     className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                   >
                     <CornerDownRight size={14} /> Trả lời
@@ -297,7 +304,7 @@ export default function CommentForm({
               </div>
             )}
 
-            {/* CHILD COMMENTS */}
+            {/* --- BÌNH LUẬN CON (CHILDREN) --- */}
             {c.children && c.children.length > 0 && (
               <div className="ml-12 mt-2 space-y-3">
                 {visibleChildren?.map((child) => (
@@ -316,8 +323,9 @@ export default function CommentForm({
                         }`}
                       />
                       <div className="flex-1">
+                        {/* SỬA TẠI ĐÂY: Đổi child.user.username thành child.user.fullName */}
                         <div className="font-medium text-gray-800 text-sm dark:text-gray-100">
-                          {child.user.username}
+                          {child.user.fullName}
                         </div>
                         <p className="text-gray-700 text-sm whitespace-pre-line dark:text-gray-300">
                           {child.content.startsWith("@") ? (
@@ -339,7 +347,7 @@ export default function CommentForm({
                           <LikeComment commentId={child.id} />
                           <button
                             onClick={() =>
-                              toggleReply(child.id, child.user.username)
+                              toggleReply(child.id, child.user.fullName)
                             }
                             className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                           >
@@ -426,7 +434,6 @@ export default function CommentForm({
       })}
     </div>
   );
-
   return (
     <div className="mt-4">
       {/* Ô nhập bình luận */}

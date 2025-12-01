@@ -12,8 +12,11 @@ import {
 import { GroupCallService } from './group-call.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateGroupCallDto } from './dto/create-group-call.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @Controller('group-calls')
+@ApiTags('group-calls')
+@ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard) // Bảo vệ tất cả các API trong controller này
 export class GroupCallController {
   constructor(private readonly groupCallService: GroupCallService) {}
