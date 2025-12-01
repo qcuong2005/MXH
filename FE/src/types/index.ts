@@ -1,3 +1,4 @@
+
 export interface User {
   id: string
   name: string
@@ -144,18 +145,16 @@ export interface GroupCallInitiator {
 // Interface chính cho GroupCall
 export interface GroupCall {
   id: number;
-  
-  // Lưu ý: Backend bạn đặt tên biến là snake_case (group_id) nên ở đây phải giống y hệt
   group_id: number; 
   initiator_id: number;
-  
   type: 'audio' | 'video';
   status: 'active' | 'ended';
-  
-  // Dữ liệu ngày tháng từ API JSON trả về luôn là string (ISO 8601)
   created_at: string; 
-  
-  // Object này có được nhờ lệnh .leftJoinAndMapOne bên NestJS
-  // Để dấu ? (optional) để tránh lỗi nếu dữ liệu user bị null hoặc khi mới tạo chưa join kịp
   initiator?: GroupCallInitiator; 
+}
+ 
+export interface Followers {
+  followers: number;
+  following:number;
+  createdAt: string;
 }

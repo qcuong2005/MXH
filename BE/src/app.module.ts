@@ -17,11 +17,12 @@ import { GroupModule } from './group/group.module';
 import { GroupMemberModule } from './group-member/group-member.module';
 import { GroupMessagesModule } from './group-messages/group-messages.module';
 import { GroupCallModule } from './group-call/group-call.module';
+import { FollowsModule } from './follows/follows.module';
 
 
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule, GroupCallModule,],
+  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule, GroupCallModule, FollowsModule,],
   providers: [
     {
       provide: APP_GUARD,
