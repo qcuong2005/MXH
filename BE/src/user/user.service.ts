@@ -87,12 +87,15 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+async create(createUserDto: CreateUserDto): Promise<User> {
     try {
       const user = this.userRepository.create(createUserDto);
+      // Mặc định tạo ra là user thường, chưa xác minh
+      user.role = 'user';
+      user.is_verified = false;
       return await this.userRepository.save(user);
     } catch (error) {
-      if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' || error.code === 'ER_DUP_ENTRY') {
         throw new ConflictException('Email or username already exists');
       }
       throw error;
@@ -153,5 +156,20 @@ export class UserService {
   async remove(id: number): Promise<void> {
     const user = await this.findOne(id);
     await this.userRepository.remove(user);
+  }
+
+  async toggleVerify(id: number): Promise<User> {
+    const user = await this.findOne(id);
+    user.is_verified = !user.is_verified; // Đảo ngược trạng thái
+    return await this.userRepository.save(user);
+  }
+  async updateProfile(id: number, fullName: string, bio: string): Promise<User> {
+    const user = await this.findOne(id);
+    
+    // Chỉ cập nhật nếu có dữ liệu gửi lên
+    if (fullName !== undefined) user.fullName = fullName;
+    if (bio !== undefined) user.bio = bio;
+
+    return await this.userRepository.save(user);
   }
 }
