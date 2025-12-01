@@ -158,3 +158,18 @@ export interface Followers {
   following:number;
   createdAt: string;
 }
+
+
+export interface AdminPost {
+  id: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  image_url?: string;
+  user: {
+    id: number;
+    fullName: string;
+    username: string;
+    avatar?: string;
+  };
+}
