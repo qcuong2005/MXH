@@ -35,6 +35,7 @@ export default function LoginPage() {
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('userId', data.user.id)
     localStorage.setItem('username',data.user.username)
+    localStorage.setItem('role',data.user.role)
     // ✅ Chuyển hướng về trang chính
     router.push('/')
   } catch (err) {
