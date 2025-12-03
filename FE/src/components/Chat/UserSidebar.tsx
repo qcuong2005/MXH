@@ -562,7 +562,7 @@ export default function UserSidebar({
                     lastMessageTime: new Date().toISOString(),
                     unreadCount: 1,
                     status: "online"
-                };
+                } as any;
             }
 
             // Chèn vào đầu danh sách

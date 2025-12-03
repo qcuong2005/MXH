@@ -577,12 +577,12 @@ export default function Feed() {
         <ul className="space-y-6">
           {posts.map((p, index) => {
             const isLast = index === posts.length - 1;
-            const profileUrl = p.user?.id
-              ? `/profile?userId=${p.user.id}`
+            const profileUrl = (p.user as any)?.id
+              ? `/profile?userId=${(p.user as any).id}`
               : "#";
 
             // --- 2. KIỂM TRA FOLLOW (DÙNG NUMBER ĐỂ SO SÁNH) ---
-            const authorId = Number(p.user?.id);
+            const authorId = Number((p.user as any)?.id);
             const isFollowing = authorId ? followingIds.has(authorId) : false;
             const isMe = authorId === currentUserId;
 
@@ -607,12 +607,12 @@ export default function Feed() {
 
                   <div className="min-w-0 flex flex-col justify-center">
                     <div className="flex items-center flex-wrap gap-2">
-                  
-                        <h4 className="font-semibold text-gray-800 truncate dark:text-gray-100">
-                          {p.user?.fullName || "Người dùng ẩn danh"}
-                          {(Number(p.user?.id) === 1 || (p.user as any)?.is_verified) && <GoldenTick />}
-                        </h4>
-                     
+                      <h4 className="font-semibold text-gray-800 truncate dark:text-gray-100">
+                        {p.user?.fullName || "Người dùng ẩn danh"}
+                        {(Number((p.user as any)?.id) === 1 ||
+                          (p.user as any)?.is_verified) && <GoldenTick />}
+                      </h4>
+
                       {/* --- NÚT FOLLOW --- */}
                       {!isMe && authorId && (
                         <>
@@ -665,7 +665,7 @@ export default function Feed() {
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
                     }}
-                    onClick={() => setSelectedImage(p.image_url)}
+                    onClick={() => setSelectedImage(p.image_url || "") }
                   />
                 )}
 
