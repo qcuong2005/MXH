@@ -48,14 +48,27 @@ export interface Comment {
 }
 
 
+// types/index.ts
+
+export enum NotificationType {
+  NEW_MESSAGE = 'NEW_MESSAGE',
+  INCOMING_CALL = 'INCOMING_CALL',
+  NEW_FOLLOWER = 'NEW_FOLLOWER',
+  NEW_POST = 'NEW_POST',
+  NEW_COMMENT = 'NEW_COMMENT',
+  NEW_LIKE = 'NEW_LIKE',
+}
+
 export interface Notification {
-  id: string
-  type: 'like' | 'comment' | 'follow' | 'mention'
-  message: string
-  user: User
-  postId?: string
-  read: boolean
-  createdAt: Date
+  id: number;
+  user_id: number;       // Người nhận
+  sender_id: number;     // Người gửi
+  type: NotificationType;
+  content: string;
+  resource_id?: number;  // ID bài viết, comment...
+  resource_url?: string; // Link điều hướng
+  is_read: boolean;
+  created_at: string;    // Vì JSON trả về date dưới dạng string
 }
 
 export interface like {
