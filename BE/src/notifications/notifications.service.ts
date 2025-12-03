@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification, NotificationType } from './entities/notification.entity'; // Nhớ import Enum
+import { Notification } from './entities/notification.entity'; // Nhớ import Enum
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { NotificationsGateway } from './notifications.gateway';
 
@@ -13,10 +13,13 @@ export class NotificationsService {
     private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
-  // 1. Tạo thông báo (Dùng chung cho tất cả các Service khác)
-  async create(createDto: CreateNotificationDto) {
+async create(createDto: CreateNotificationDto) {
+  try {
+    console.log('--- Service Creating Notification ---');
     const newNotification = this.notificationRepo.create(createDto);
     const savedNotification = await this.notificationRepo.save(newNotification);
+    
+    console.log('Saved successfully:', savedNotification); // 3. Xem đã lưu DB chưa
 
     // Gửi socket realtime
     this.notificationsGateway.sendNotificationToUser(
@@ -25,8 +28,11 @@ export class NotificationsService {
     );
 
     return savedNotification;
+  } catch (error) {
+    console.error('LỖI LƯU THÔNG BÁO:', error); // 4. Bắt lỗi nếu DB từ chối lưu
+    throw error;
   }
-
+}
   // 2. Lấy danh sách
   async findAllByUser(userId: number) {
     return await this.notificationRepo.find({

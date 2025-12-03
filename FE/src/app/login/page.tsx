@@ -44,7 +44,7 @@ export default function LoginPage() {
       localStorage.setItem("userId", data.user.id);
       localStorage.setItem("username", data.user.username);
       localStorage.setItem("role", data.user.role); // Nếu có role
-
+      window.dispatchEvent(new Event("user-logged-in"));
       // 3. Thông báo thành công
       toast.dismiss(loadingToast);
       toast.success("Đăng nhập thành công!", { duration: 2000 });
