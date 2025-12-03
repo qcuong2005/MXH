@@ -247,7 +247,7 @@ export default function CommentForm({
                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-1 dark:text-gray-400">
                   <LikeComment commentId={c.id} />
                   <button
-                    onClick={() => toggleReply(c.id, c.user.fullName)}
+                    onClick={() => toggleReply(c.id, c.user.fullName || "")}
                     className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                   >
                     <CornerDownRight size={14} /> Trả lời
@@ -347,7 +347,7 @@ export default function CommentForm({
                           <LikeComment commentId={child.id} />
                           <button
                             onClick={() =>
-                              toggleReply(child.id, child.user.fullName)
+                              toggleReply(child.id, child.user.fullName ||"")
                             }
                             className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
                           >

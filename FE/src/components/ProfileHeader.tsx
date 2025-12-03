@@ -141,7 +141,7 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
             const response = await getMyFollowing(token);
             const list = Array.isArray(response)
               ? response
-              : response?.data || [];
+              : (response as any)?.data || [];
             const isFound = list.some((item: any) => {
               const targetId =
                 item.followingId ??

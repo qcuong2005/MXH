@@ -35,7 +35,7 @@ export default function AdminPostManagementPage() {
     setLoading(true);
     try {
       const data = await getAllPostsAdmin();
-      setPosts(data || []);
+      setPosts((data || []) as any);
       toast.success("Đã tải danh sách bài viết");
     } catch (error: any) {
       if (error.response?.status === 401 || error.response?.status === 403) {

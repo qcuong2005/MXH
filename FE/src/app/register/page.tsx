@@ -1,8 +1,24 @@
-'use client'
+"use client";
 
-import React, { useState } from "react"
-import { Register } from "@/services/api"
-import { User, Mail, Lock, FileText, Image as ImageIcon, Heart, Sparkles, MessageCircle, Star, UserCircle, UserCheck, UserX, Eye, EyeOff } from "lucide-react"
+import React, { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import { Register } from "@/services/api";
+import {
+  User,
+  Mail,
+  Lock,
+  FileText,
+  Image as ImageIcon,
+  Heart,
+  Sparkles,
+  MessageCircle,
+  Star,
+  Eye,
+  EyeOff,
+  UserCheck,
+  UserCircle,
+  UserX,
+} from "lucide-react";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -11,241 +27,277 @@ export default function RegisterPage() {
     password: "",
     fullName: "",
     bio: "",
-    gender: "", // 🆕 thêm trường giới tính
-  })
+    gender: "",
+  });
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [avatar, setAvatar] = useState<File | null>(null)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-
-  // 🧩 Xử lý khi thay đổi các input text
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setForm({ ...form, [name]: value })
-  }
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setAvatar(file)
-    }
-  }
+    if (e.target.files?.[0]) setAvatar(e.target.files[0]);
+  };
 
-  // 🚀 Gửi dữ liệu lên server
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setSuccess("")
+    e.preventDefault();
+    const loadingToast = toast.loading("Đang xử lý...");
 
     try {
-      const formData = new FormData()
-      Object.entries(form).forEach(([key, value]) => {
-        formData.append(key, value)
-      })
+      const formData = new FormData();
+      Object.entries(form).forEach(([k, v]) => formData.append(k, v));
+      if (avatar) formData.append("avatar", avatar);
 
-      if (avatar) {
-        formData.append("avatar", avatar)
+      await Register(formData);
+
+      toast.dismiss(loadingToast);
+      toast.success("Đăng ký thành công! Đang chuyển hướng...", {
+        duration: 2000,
+      });
+
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1800);
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      console.log("Chi tiết lỗi:", err);
+
+      let msg = "Đã có lỗi xảy ra. Vui lòng thử lại!";
+
+      // Xử lý lỗi: Ưu tiên check object response trước
+      if (err?.response?.data?.message) {
+        const serverMessage = err.response.data.message;
+        msg = Array.isArray(serverMessage) ? serverMessage[0] : serverMessage;
+      } 
+      // Xử lý lỗi: Check chuỗi string chứa JSON (Trường hợp của bạn)
+      else if (err?.message && typeof err.message === "string") {
+        try {
+          // Tìm đoạn JSON trong chuỗi lỗi
+          const jsonMatch = err.message.match(/\{.*\}/);
+          if (jsonMatch) {
+            const parsedError = JSON.parse(jsonMatch[0]);
+            if (parsedError.message) {
+              msg = Array.isArray(parsedError.message)
+                ? parsedError.message[0]
+                : parsedError.message;
+            }
+          }
+        } catch (e) {
+          // Nếu parse thất bại thì giữ nguyên msg mặc định
+        }
       }
 
-      const res = await Register(formData)
-
-      console.log("Kết quả đăng ký:", res)
-      setSuccess("Đăng ký thành công! 🎉")
-
-      // Reset form
-      setForm({
-        username: "",
-        email: "",
-        password: "",
-        fullName: "",
-        bio: "",
-        gender: "",
-      })
-      setAvatar(null)
-    } catch (err: any) {
-      console.error("Lỗi khi đăng ký:", err)
-      setError("Đăng ký thất bại. Vui lòng thử lại!")
+      toast.error(msg);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-indigo-400 via-sky-300 to-emerald-300">
-      <div className="absolute inset-0 overflow-hidden">
-        <Heart className="animate-float text-white/30 size-8 absolute top-10 left-8" />
-        <Sparkles className="animate-float-slow text-white/25 size-10 absolute top-24 right-10" />
-        <MessageCircle className="animate-float text-white/30 size-9 absolute bottom-16 left-14" />
-        <Star className="animate-float-slow text-white/25 size-8 absolute bottom-10 right-8" />
-      </div>
-      
-      {/* Logo VTC Media */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 z-20">
-        <div className="text-center">
-          <h1 className="text-5xl font-extrabold text-white drop-shadow-lg tracking-wider">
+    <>
+      <Toaster position="top-center" reverseOrder={false} />
+
+      {/* Background */}
+      <div className="min-h-screen relative flex flex-col items-center justify-center bg-gradient-to-br from-indigo-400 via-sky-300 to-emerald-300 overflow-hidden px-4 py-8">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <Heart className="absolute top-10 left-8 text-white/30 animate-float" size={48} />
+          <Sparkles className="absolute top-24 right-10 text-white/25 animate-float-slow" size={56} />
+          <MessageCircle className="absolute bottom-16 left-14 text-white/30 animate-float" size={52} />
+          <Star className="absolute bottom-10 right-8 text-white/25 animate-float-slow" size={48} />
+        </div>
+
+        {/* Logo */}
+        <div className="relative z-20 text-center mb-6 lg:mb-4">
+          <h1 className="text-5xl lg:text-5xl font-extrabold text-white drop-shadow-2xl tracking-wider">
             VTC Media
           </h1>
-          <div className="w-24 h-1 bg-white/80 mx-auto mt-2 rounded-full"></div>
-          <p className="text-white/90 text-sm mt-2 font-medium">Tạo tài khoản mới</p>
+          <div className="w-32 h-1 bg-white/80 mx-auto mt-3 rounded-full"></div>
+          <p className="text-white/90 text-lg mt-3 font-medium">
+            Tạo tài khoản mới
+          </p>
+        </div>
+
+        {/* Form Card */}
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-0 sm:px-6">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/50 
+                       p-6 sm:p-8 lg:p-6 
+                       max-w-lg sm:max-w-2xl md:max-w-3xl lg:max-w-3xl 
+                       mx-auto"
+          >
+            <h2 className="text-2xl sm:text-3xl lg:text-2xl font-bold text-center text-gray-800 mb-8 lg:mb-6">
+              Bắt đầu hành trình
+            </h2>
+
+            {/* Grid layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-5">
+              {/* Cột trái */}
+              <div className="space-y-5 lg:space-y-4">
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 lg:w-4 lg:h-4" size={20} />
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Tên đăng nhập"
+                    required
+                    value={form.username}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-5 py-4 lg:py-2.5 bg-white/70 border border-gray-300 rounded-xl lg:rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 transition text-base lg:text-sm"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 lg:w-4 lg:h-4" size={20} />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    required
+                    value={form.email}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-5 py-4 lg:py-2.5 bg-white/70 border border-gray-300 rounded-xl lg:rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-300 transition text-base lg:text-sm"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 lg:w-4 lg:h-4" size={20} />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Mật khẩu"
+                    required
+                    value={form.password}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-14 py-4 lg:py-2.5 bg-white/70 border border-gray-300 rounded-xl lg:rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 transition text-base lg:text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600"
+                  >
+                    {showPassword ? <EyeOff size={20} className="lg:w-4 lg:h-4" /> : <Eye size={20} className="lg:w-4 lg:h-4" />}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 lg:w-4 lg:h-4" size={20} />
+                  <input
+                    type="text"
+                    name="fullName"
+                    placeholder="Họ tên đầy đủ"
+                    value={form.fullName}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-5 py-4 lg:py-2.5 bg-white/70 border border-gray-300 rounded-xl lg:rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 transition text-base lg:text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Cột phải */}
+              <div className="space-y-5 lg:space-y-4">
+                <textarea
+                  name="bio"
+                  placeholder="Giới thiệu (tùy chọn)"
+                  rows={3}
+                  value={form.bio}
+                  onChange={handleChange}
+                  className="w-full p-4 lg:p-3 bg-white/70 border border-gray-300 rounded-xl lg:rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none text-base lg:text-sm"
+                />
+
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2 lg:mb-1">Giới tính</p>
+                  <div className="grid grid-cols-3 gap-3 lg:gap-2">
+                    {[
+                      { value: "Boys", icon: UserCheck, label: "Nam", color: "indigo" },
+                      { value: "Girls", icon: UserCircle, label: "Nữ", color: "pink" },
+                      { value: "Other", icon: UserX, label: "Khác", color: "purple" },
+                    ].map(({ value, icon: Icon, label, color }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, gender: value }))}
+                        className={`flex flex-col items-center py-3 lg:py-2 rounded-xl lg:rounded-lg border-2 transition-all text-sm lg:text-xs
+                          ${form.gender === value
+                            ? `border-${color}-500 bg-${color}-50 text-${color}-700 shadow-md scale-105`
+                            : "border-gray-300 hover:border-gray-400"
+                          }`}
+                      >
+                        <Icon className="size-6 lg:size-5 mb-1" />
+                        <span className="font-medium">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <input
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="avatar"
+                    className="flex flex-row lg:flex-row items-center justify-center gap-3 p-3 lg:p-2 border-2 border-dashed border-gray-300 rounded-xl lg:rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition"
+                  >
+                    <ImageIcon className="text-indigo-600" size={28} />
+                    <span className="text-gray-700 font-medium text-sm lg:text-xs truncate max-w-[150px]">
+                      {avatar ? avatar.name : "Chọn ảnh đại diện"}
+                    </span>
+                  </label>
+                  
+                  {avatar && (
+                    <div className="mt-2 hidden lg:flex justify-center">
+                       <p className="text-xs text-green-600 font-bold">Đã tải lên ảnh đại diện</p>
+                    </div>
+                  )}
+
+                  {avatar && (
+                    <div className="mt-4 flex lg:hidden justify-center">
+                      <img
+                        src={URL.createObjectURL(avatar)}
+                        alt="preview"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Nút submit */}
+            <button
+              type="submit"
+              className="w-full mt-8 lg:mt-6 py-4 lg:py-3 bg-gradient-to-r from-indigo-600 to-emerald-500 text-white text-lg lg:text-base font-bold rounded-2xl lg:rounded-xl shadow-xl hover:shadow-2xl active:scale-98 transition"
+            >
+              Tạo tài khoản
+            </button>
+
+            <p className="text-center mt-6 lg:mt-4 text-gray-600 text-sm lg:text-xs">
+              Đã có tài khoản?{" "}
+              <a href="/login" className="text-indigo-600 font-bold hover:underline">
+                Đăng nhập ngay
+              </a>
+            </p>
+          </form>
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="relative z-10 bg-white/80 backdrop-blur-xl p-8 rounded-2xl shadow-xl w-full max-w-lg border border-white/40 mt-32"
-        encType="multipart/form-data"
-      >
-
-        <div className="space-y-5">
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 size-5" />
-            <input
-              type="text"
-              name="username"
-              placeholder="Tên đăng nhập"
-              className="w-full pl-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 placeholder-gray-500 shadow-sm"
-              value={form.username}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 size-5" />
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              className="w-full pl-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 placeholder-gray-500 shadow-sm"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 size-5" />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              placeholder="Mật khẩu"
-              className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 placeholder-gray-500 shadow-sm"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-500"
-            >
-              {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
-            </button>
-          </div>
-
-          <div className="relative">
-            <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 size-5" />
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Họ tên đầy đủ"
-              className="w-full pl-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 placeholder-gray-500 shadow-sm"
-              value={form.fullName}
-              onChange={handleChange}
-            />
-          </div>
-
-          <textarea
-            name="bio"
-            placeholder="Giới thiệu bản thân (bio)"
-            className="w-full py-3 px-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 placeholder-gray-500 shadow-sm"
-            value={form.bio}
-            onChange={handleChange}
-          />
-
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, gender: 'Boys' })}
-              className={`flex flex-col items-center justify-center py-3 rounded-xl border-2 transition-all ${
-                form.gender === 'Boys'
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-600 shadow-md'
-                  : 'border-gray-200 bg-white/90 hover:border-indigo-300 hover:shadow-sm'
-              }`}
-            >
-              <UserCheck className="size-6 mb-1" />
-              <span className="text-sm font-medium">Nam</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, gender: 'Girls' })}
-              className={`flex flex-col items-center justify-center py-3 rounded-xl border-2 transition-all ${
-                form.gender === 'Girls'
-                  ? 'border-pink-500 bg-pink-50 text-pink-600 shadow-md'
-                  : 'border-gray-200 bg-white/90 hover:border-pink-300 hover:shadow-sm'
-              }`}
-            >
-              <UserCircle className="size-6 mb-1" />
-              <span className="text-sm font-medium">Nữ</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, gender: 'Other' })}
-              className={`flex flex-col items-center justify-center py-3 rounded-xl border-2 transition-all ${
-                form.gender === 'Other'
-                  ? 'border-purple-500 bg-purple-50 text-purple-600 shadow-md'
-                  : 'border-gray-200 bg-white/90 hover:border-purple-300 hover:shadow-sm'
-              }`}
-            >
-              <UserX className="size-6 mb-1" />
-              <span className="text-sm font-medium">Khác</span>
-            </button>
-          </div>
-
-          <div className="relative">
-            <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 size-5" />
-            <input
-              id="avatar"
-              type="file"
-              name="avatar"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="sr-only"
-            />
-            <label
-              htmlFor="avatar"
-              className="flex items-center justify-between w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-white/90 shadow-sm cursor-pointer hover:border-indigo-300 hover:shadow"
-            >
-              <span className="text-gray-800 font-medium">{avatar ? 'Đổi ảnh đại diện' : 'Chọn ảnh đại diện'}</span>
-              <span className="text-gray-500 text-sm truncate ml-2">{avatar ? avatar.name : 'Chưa chọn file'}</span>
-            </label>
-          </div>
-
-          {avatar && (
-            <div className="mb-3 flex justify-center">
-              <img
-                src={URL.createObjectURL(avatar)}
-                alt="Avatar preview"
-                className="w-24 h-24 rounded-full object-cover border"
-              />
-            </div>
-          )}
-
-          {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-          {success && <p className="text-green-600 text-sm text-center">{success}</p>}
-
-          <button
-            type="submit"
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-400 text-white font-semibold shadow-lg hover:shadow-xl transition-transform hover:scale-[1.02]"
-          >
-            Đăng ký
-          </button>
-        </div>
-
-        <p className="text-sm mt-4 text-center text-gray-700">
-          Đã có tài khoản?{' '}
-          <a href="/login" className="text-indigo-600 hover:underline">Đăng nhập ngay</a>
-        </p>
-      </form>
-    </div>
-  )
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-30px) rotate(10deg); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
+      `}</style>
+    </>
+  );
 }
