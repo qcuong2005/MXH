@@ -57,6 +57,8 @@ export enum NotificationType {
   NEW_POST = 'NEW_POST',
   NEW_COMMENT = 'NEW_COMMENT',
   NEW_LIKE = 'NEW_LIKE',
+  FRIEND_ACCEPT = 'FRIEND_ACCEPT',
+  FRIEND_REQUEST = 'FRIEND_REQUEST'
 }
 
 export interface Notification {

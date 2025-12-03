@@ -1,21 +1,64 @@
 import { get, post, patch } from "@/utils/request";
 import type { Notification } from "@/types"; 
-// Bạn nhớ cập nhật type Notification trong file types/index.ts nhé (mình để mẫu bên dưới)
 
-// 1. Lấy danh sách thông báo của User
+// // 1. Lấy danh sách thông báo của User
+// export async function getNotificationsApi(
+//   token: string,
+//   userId: number
+// ): Promise<Notification[]> {
+//   return await get<Notification[]>(
+//     `/notifications/user/${userId}`,
+//     {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         Accept: "application/json",
+//       },
+//     }
+//   );
+// }
+
 export async function getNotificationsApi(
   token: string,
   userId: number
 ): Promise<Notification[]> {
-  return await get<Notification[]>(
-    `/notifications/user/${userId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
+  console.log("Calling getNotificationsApi for user:", userId);
+
+  try {
+    const response = await get<Notification[]>(
+      `/notifications/user/${userId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Kiểm tra response có đúng là mảng không (phòng backend lỗi)
+    if (!Array.isArray(response)) {
+      console.warn("API /notifications/user trả về không phải mảng:", response);
+      return [];
     }
-  );
+
+    console.log(`Lấy thành công ${response.length} thông báo cho user ${userId}`);
+    return response;
+  } catch (error: any) {
+    // Xử lý lỗi chi tiết để dễ debug
+    if (error.response) {
+      // Lỗi từ server (401, 403, 500...)
+      console.error("Lỗi API getNotificationsApi - Status:", error.response.status);
+      console.error("Lỗi API getNotificationsApi - Data:", error.response.data);
+    } else if (error.request) {
+      // Không kết nối được server
+      console.error("Không kết nối được tới server (getNotificationsApi):", error.request);
+    } else {
+      console.error("Lỗi không xác định khi gọi getNotificationsApi:", error.message);
+    }
+
+    // Trả về mảng rỗng để UI không crash
+    return [];
+  }
 }
 
 // 2. Đánh dấu 1 thông báo đã đọc
@@ -23,10 +66,9 @@ export async function markNotificationAsReadApi(
   token: string,
   notificationId: number
 ): Promise<{ success: boolean; message: string }> {
-  // Method PATCH: thường body để rỗng {} nếu không cần gửi dữ liệu gì thêm
   return await patch(
     `/notifications/${notificationId}/read`,
-    {}, 
+    {}, // Body rỗng
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -43,7 +85,7 @@ export async function markAllNotificationsAsReadApi(
 ): Promise<{ success: boolean }> {
   return await patch(
     `/notifications/user/${userId}/read-all`,
-    {},
+    {}, // Body rỗng
     {
       headers: {
         Authorization: `Bearer ${token}`,

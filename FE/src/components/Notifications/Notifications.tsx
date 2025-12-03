@@ -8,10 +8,20 @@ import {
   markAllNotificationsAsReadApi,
 } from "@/services/notification";
 import { Notification, NotificationType } from "@/types";
-import { Heart, MessageCircle, UserPlus, Bell, CheckCheck } from "lucide-react";
-import { useSocket } from "../SocketContext";
+import { 
+  Heart, 
+  MessageCircle, 
+  UserPlus, 
+  Bell, 
+  CheckCheck, 
+  PhoneIncoming, 
+  UserCheck, 
+  MessageSquare
+} from "lucide-react";
+// Lưu ý: Đường dẫn này dựa trên cấu trúc folder của bạn (Notifications nằm trong components/Notifications)
+// Header nằm trong components/, SocketContext nằm trong components/
+import { useSocket } from "../SocketContext"; 
 
-// currentUser có thể là null → không bắt buộc đăng nhập
 interface Props {
   currentUser: { id: number; token: string } | null;
 }
@@ -22,22 +32,30 @@ export default function Notifications({ currentUser }: Props) {
   const router = useRouter();
   const { socket } = useSocket();
 
-  // Load thông báo – nếu chưa đăng nhập thì gọi API sẽ fail → tự động về mảng rỗng
+  // 1. Load thông báo ban đầu từ API khi mở Popup
   useEffect(() => {
     const fetchNotifications = async () => {
-      // Không check currentUser nữa → cứ gọi API, lỗi thì catch
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
+      console.log("🚀 [Notifications] Bắt đầu gọi API lấy danh sách...");
       try {
-        if (currentUser) {
-          const data = await getNotificationsApi(currentUser.token, currentUser.id);
+        const data = await getNotificationsApi(currentUser.token, currentUser.id);
+        console.log("✅ [Notifications] API trả về:", data);
+        
+        if (Array.isArray(data)) {
           setNotifications(
             data.sort((a: any, b: any) =>
               new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             )
           );
+        } else {
+          console.error("⚠️ [Notifications] Dữ liệu trả về không phải mảng:", data);
         }
       } catch (error) {
-        console.log("Chưa đăng nhập hoặc lỗi tải thông báo → để trống danh sách");
-        setNotifications([]); // Đảm bảo không lỗi
+        console.error("❌ [Notifications] Lỗi gọi API:", error);
       } finally {
         setLoading(false);
       }
@@ -46,30 +64,36 @@ export default function Notifications({ currentUser }: Props) {
     fetchNotifications();
   }, [currentUser]);
 
-useEffect(() => {
-  if (!socket || !currentUser) return;
+  // 2. Lắng nghe Socket Realtime (Chỉ khi Popup đang mở)
+  useEffect(() => {
+    if (!socket || !currentUser) return;
 
-  const handleNewNotification = (notification: Notification) => {
-    console.log("Realtime thông báo mới:", notification);
+    const handleNewNotification = (notification: Notification) => {
+      // Log này sẽ hiện khi Popup đang mở mà có thông báo tới
+      console.log("🔔 [Notifications] Nhận socket realtime:", notification);
 
-    // Kiểm tra đúng người nhận
-    if (notification.user_id !== currentUser.id) return;
+      // Kiểm tra User ID (Quan trọng)
+      // Lưu ý: notification.user_id từ socket có thể là number hoặc string, nên so sánh lỏng (==) hoặc ép kiểu
+      if (Number(notification.user_id) !== Number(currentUser.id)) {
+         console.log(`⚠️ [Notifications] Bỏ qua vì không đúng chủ (Nhận: ${notification.user_id}, Tôi: ${currentUser.id})`);
+         return;
+      }
 
-    setNotifications((prev) => {
-      // Tránh duplicate
-      if (prev.some(n => n.id === notification.id)) return prev;
-      return [notification, ...prev];
-    });
-  };
+      setNotifications((prev) => {
+        // Tránh trùng lặp ID
+        if (prev.some(n => n.id === notification.id)) return prev;
+        return [notification, ...prev];
+      });
+    };
 
-  socket.on("new_notification", handleNewNotification);
+    socket.on("new_notification", handleNewNotification);
 
-  return () => {
-    socket.off("new_notification", handleNewNotification);
-  };
-}, [socket, currentUser]);
+    return () => {
+      socket.off("new_notification", handleNewNotification);
+    };
+  }, [socket, currentUser]);
 
-  // Click item – nếu chưa đăng nhập thì không làm gì cả
+  // 3. Xử lý click item
   const handleItemClick = async (notif: Notification) => {
     if (!currentUser) return;
 
@@ -77,28 +101,32 @@ useEffect(() => {
       setNotifications((prev) =>
         prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
       );
-      markNotificationAsReadApi(currentUser.token, notif.id).catch(() => {});
+      markNotificationAsReadApi(currentUser.token, notif.id).catch(console.error);
     }
 
     if (notif.resource_url) {
       router.push(notif.resource_url);
-    } else if (notif.type === NotificationType.NEW_FOLLOWER) {
+    } else {
       router.push(`/profile/${notif.sender_id}`);
     }
   };
 
   const handleMarkAllRead = async () => {
     if (!currentUser) return;
-
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    await markAllNotificationsAsReadApi(currentUser.token, currentUser.id).catch(() => {});
+    await markAllNotificationsAsReadApi(currentUser.token, currentUser.id).catch(console.error);
   };
 
+  // Helper render icon/màu (Giữ nguyên như cũ)
   const renderIcon = (type: NotificationType) => {
     switch (type) {
       case NotificationType.NEW_LIKE: return <Heart className="w-4 h-4 text-white fill-current" />;
       case NotificationType.NEW_COMMENT: return <MessageCircle className="w-4 h-4 text-white fill-current" />;
-      case NotificationType.NEW_FOLLOWER: return <UserPlus className="w-4 h-4 text-white fill-current" />;
+      case NotificationType.NEW_FOLLOWER: return <UserPlus className="w-4 h-4 text-white" />;
+      case NotificationType.FRIEND_REQUEST: return <UserPlus className="w-4 h-4 text-white" />;
+      case NotificationType.FRIEND_ACCEPT: return <UserCheck className="w-4 h-4 text-white" />;
+      case NotificationType.INCOMING_CALL: return <PhoneIncoming className="w-4 h-4 text-white" />;
+      case NotificationType.NEW_MESSAGE: return <MessageSquare className="w-4 h-4 text-white" />;
       default: return <Bell className="w-4 h-4 text-white" />;
     }
   };
@@ -108,68 +136,82 @@ useEffect(() => {
       case NotificationType.NEW_LIKE: return "bg-red-500";
       case NotificationType.NEW_COMMENT: return "bg-blue-500";
       case NotificationType.NEW_FOLLOWER: return "bg-green-500";
+      case NotificationType.FRIEND_REQUEST: return "bg-indigo-500";
+      case NotificationType.FRIEND_ACCEPT: return "bg-teal-500";
+      case NotificationType.INCOMING_CALL: return "bg-orange-500";
+      case NotificationType.NEW_MESSAGE: return "bg-sky-500";
       default: return "bg-gray-500";
     }
   };
 
-  // Không loading nữa – vì nếu chưa đăng nhập thì list rỗng luôn
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Đang tải...</div>;
+    return (
+      <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+        Đang tải...
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col max-h-[70vh]">
-      <div className="px-4 py-3 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200">Thông báo</h3>
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-900 sticky top-0 z-10">
+        <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">Thông báo</h3>
         {notifications.length > 0 && currentUser && (
           <button
             onClick={handleMarkAllRead}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
           >
-            <CheckCheck size={14} /> Đọc tất cả
+            <CheckCheck size={14} /> Đánh dấu đã đọc
           </button>
         )}
       </div>
 
-      <div className="overflow-y-auto flex-1 custom-scrollbar">
+      <div className="overflow-y-auto flex-1 custom-scrollbar bg-white dark:bg-gray-900">
         {notifications.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 dark:text-gray-500">
-            Chưa có thông báo nào
+          <div className="flex flex-col items-center justify-center p-10 text-gray-400 dark:text-gray-500">
+            <Bell className="w-12 h-12 mb-3 opacity-20" />
+            <p>Chưa có thông báo nào</p>
           </div>
         ) : (
           notifications.map((notif) => (
             <div
               key={notif.id}
               onClick={() => handleItemClick(notif)}
-              className={`flex items-start gap-3 p-3 border-b dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                !notif.is_read ? "bg-blue-50 dark:bg-blue-900/20" : ""
-              }`}
+              className={`group flex items-start gap-3 p-4 border-b border-gray-50 dark:border-gray-800 cursor-pointer transition-all duration-200
+                ${
+                  !notif.is_read
+                    ? "bg-indigo-50/60 dark:bg-indigo-900/10 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20"
+                    : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                }
+              `}
             >
               <div className="relative shrink-0 mt-1">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center font-bold text-gray-500 dark:text-gray-300 text-xs shadow-sm">
                   {notif.sender_id}
                 </div>
-                <div
-                  className={`absolute -bottom-1 -right-1 p-1 rounded-full border-2 border-white dark:border-gray-900 ${getIconBg(
-                    notif.type
-                  )}`}
-                >
+                <div className={`absolute -bottom-1 -right-1 p-1 rounded-full border-2 border-white dark:border-gray-900 shadow-sm ${getIconBg(notif.type)}`}>
                   {renderIcon(notif.type)}
                 </div>
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
-                  <span className="font-bold">User {notif.sender_id}</span>{" "}
-                  {getContentByType(notif)}
+                <p className="text-sm text-gray-800 dark:text-gray-200 leading-snug">
+                  <span className="font-bold hover:underline">User {notif.sender_id}</span>{" "}
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {notif.content}
+                  </span>
                 </p>
-                <span className="text-xs text-gray-400 dark:text-gray-500 mt-1 block">
-                  {new Date(notif.created_at).toLocaleString("vi-VN")}
+                <span className="text-xs text-indigo-500/80 dark:text-indigo-400/80 mt-1.5 font-medium block">
+                  {new Date(notif.created_at).toLocaleString("vi-VN", {
+                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                  })}
                 </span>
               </div>
-
               {!notif.is_read && (
-                <div className="w-2 h-2 rounded-full bg-blue-600 mt-2 shrink-0" />
+                <div className="self-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-glow-indigo"></div>
+                </div>
               )}
             </div>
           ))
@@ -177,15 +219,4 @@ useEffect(() => {
       </div>
     </div>
   );
-}
-
-function getContentByType(notif: Notification) {
-  if (notif.content) return notif.content;
-  switch (notif.type) {
-    case NotificationType.NEW_LIKE: return "đã thích bài viết của bạn.";
-    case NotificationType.NEW_COMMENT: return "đã bình luận bài viết của bạn.";
-    case NotificationType.NEW_FOLLOWER: return "đã bắt đầu theo dõi bạn.";
-    case NotificationType.NEW_MESSAGE: return "đã gửi tin nhắn cho bạn.";
-    default: return "có thông báo mới.";
-  }
 }

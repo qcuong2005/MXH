@@ -15,7 +15,10 @@ export class NotificationsController {
   @ApiBearerAuth('access-token')
   @Post()
   create(@Body() createDto: CreateNotificationDto) {
+    console.log('--- API Create Notification Called ---'); // 1. Xem API có được gọi không
+  console.log('Data received:', createDto);            // 2. Xem dữ liệu gửi lên là gì
     return this.notificationsService.create(createDto);
+
   }
 
   // 2. Lấy danh sách thông báo
