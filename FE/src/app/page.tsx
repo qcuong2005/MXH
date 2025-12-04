@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Feed from "@/components/Posts/Feed";
 
+
 export default function Home() {
   const router = useRouter();
 
