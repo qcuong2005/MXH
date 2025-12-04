@@ -266,7 +266,7 @@ export default function Header() {
     };
 
     socket.on("new_notification", handleNew);
-    return () => socket.off("new_notification", handleNew);
+    return () =>{ socket.off("new_notification", handleNew)};
   }, [socket, currentUser]);
 
   // 4. Mở/đóng popup thông báo
