@@ -20,7 +20,7 @@ import { formatDate, formatNumber } from "@/lib/utisls";
 import { fetchAPI } from "@/lib/api";
 import anhmacdinh from "../../image/anhmacdinh.jpg";
 import Likes from "./Posts/likes";
-import { getCommentsByPost, deletePost, updatePost } from "@/services/api";
+import { getCommentsByPost,} from "@/services/api";
 import { ensureConversation } from "@/services/message";
 import type { Post } from "../types";
 import type { Comment as AppComment } from "../types";
@@ -34,6 +34,7 @@ import {
   getFollowCounts,
 } from "@/services/follows";
 import GoldenTick from "./GoldenTick";
+import { deletePost, updatePost } from "@/services/post";
 
 interface ProfileHeaderProps {
   userId?: number | null;

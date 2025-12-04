@@ -161,7 +161,7 @@ export class LikesService {
     try {
       let receiverId: number | null = null;
       let content = '';
-      let resourceUrl = '';
+
 
       // A. Nếu Like Bài Viết
       if (postId) {
@@ -175,7 +175,7 @@ export class LikesService {
         if (post && post.user) {
           receiverId = post.user.id;
           content = 'đã bày tỏ cảm xúc về bài viết của bạn.';
-          resourceUrl = `/posts/${postId}`;
+   
         }
       } 
       // B. Nếu Like Bình Luận
@@ -191,9 +191,6 @@ export class LikesService {
           receiverId = comment.user.id;
           content = 'đã bày tỏ cảm xúc về bình luận của bạn.';
           
-          // Lấy postId thông qua object post (nếu comment thuộc về 1 bài viết)
-          const associatedPostId = comment.post ? comment.post.id : null;
-          resourceUrl = associatedPostId ? `/posts/${associatedPostId}` : '#'; 
         }
       }
 
@@ -205,7 +202,7 @@ export class LikesService {
           type: NotificationType.NEW_LIKE,
           content: content,
           resource_id: postId || commentId, 
-          resource_url: resourceUrl,
+
         });
       }
     } catch (error) {
