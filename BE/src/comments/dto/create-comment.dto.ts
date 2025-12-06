@@ -33,6 +33,16 @@ export class CreateCommentDto {
   image_url?: string | null;
 
   @ApiProperty({
+    description: 'Audio attached to the comment',
+    example: 'https://example.com/comment.webm',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  audio_url?: string | null;
+
+  @ApiProperty({
     description: 'Parent comment ID (if this is a reply)',
     example: 2,
     required: false,

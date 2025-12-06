@@ -35,6 +35,7 @@ export interface Comment {
   id: number;
   content?: string | null;
   image_url?: string | null;
+  audio_url?: string | null;
   createdAt: string;
   updatedAt: string;
   user: {

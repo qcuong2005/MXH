@@ -52,6 +52,14 @@ export class CommentEntity {
   @Column({ type: 'varchar', length: 1000, nullable: true })
   image_url?: string | null;
 
+  @ApiProperty({
+    description: 'Optional audio attached to the comment',
+    example: 'https://example.com/comment.webm',
+    required: false,
+  })
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  audio_url?: string | null;
+
   // ===== PARENT / REPLY =====
   @ApiProperty({
     description: 'Parent comment (if this is a reply)',

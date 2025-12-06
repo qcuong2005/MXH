@@ -10,7 +10,7 @@ import {
   Request,
   HttpStatus,
   UseInterceptors,
-  UploadedFile,
+  UploadedFiles,
   BadRequestException,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
@@ -19,7 +19,7 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommentEntity } from './entities/comment.entity';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
@@ -43,35 +43,44 @@ export class CommentsController {
   })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input data.' })
   @UseInterceptors(
-    FileInterceptor('image', {
+    AnyFilesInterceptor({
       storage: diskStorage({
         destination: (req, file, cb) => {
-          const path = join(__dirname, '..', '..', 'uploads', 'comments');
+          const path =
+            file.fieldname === 'audio'
+              ? join(__dirname, '..', '..', 'uploads', 'comments', 'audio')
+              : join(__dirname, '..', '..', 'uploads', 'comments');
           fs.mkdirSync(path, { recursive: true });
           cb(null, path);
         },
         filename: (req, file, cb) => {
           const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-          cb(null, `comment-${uniqueSuffix}${extname(file.originalname)}`);
+          cb(null, `comment-${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
   async create(
     @Body() createCommentDto: CreateCommentDto,
-    @UploadedFile() image: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[],
     @Request() req,
   ) {
     const userId = req.user?.id;
     const hasText = createCommentDto.content?.trim();
-    if (!hasText && !image) {
-      throw new BadRequestException('Vui lòng nhập nội dung hoặc đính kèm ảnh.');
+    const image = files?.find((f) => f.fieldname === 'image');
+    const audio = files?.find((f) => f.fieldname === 'audio');
+
+    if (!hasText && !image && !audio) {
+      throw new BadRequestException('Vui lòng nhập nội dung hoặc đính kèm ảnh/ghi âm.');
     }
 
     createCommentDto.content = hasText ? hasText : '';
     createCommentDto.image_url = image
       ? `http://localhost:5000/uploads/comments/${image.filename}`
+      : null;
+    createCommentDto.audio_url = audio
+      ? `http://localhost:5000/uploads/comments/audio/${audio.filename}`
       : null;
 
     return await this.commentsService.create(createCommentDto, userId);

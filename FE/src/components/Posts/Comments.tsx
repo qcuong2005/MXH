@@ -9,6 +9,8 @@ import {
   Smile,
   X,
   Image as ImageIcon,
+  Mic,
+  Square,
 } from "lucide-react";
 import type { Comment as AppComment } from "@/types";
 import { createComment, getCommentsByPost } from "@/services/api";
@@ -39,6 +41,15 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   const [replyImage, setReplyImage] = useState<File | null>(null);
   const [replyPreview, setReplyPreview] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const [commentAudio, setCommentAudio] = useState<File | null>(null);
+  const [commentAudioPreview, setCommentAudioPreview] = useState<string | null>(null);
+  const [replyAudio, setReplyAudio] = useState<File | null>(null);
+  const [replyAudioPreview, setReplyAudioPreview] = useState<string | null>(null);
+  const commentRecorderRef = useRef<MediaRecorder | null>(null);
+  const replyRecorderRef = useRef<MediaRecorder | null>(null);
+  const [isRecordingComment, setIsRecordingComment] = useState(false);
+  const [isRecordingReply, setIsRecordingReply] = useState(false);
 
   const replyInputRef = useRef<HTMLInputElement>(null);
   const mainInputRef = useRef<HTMLInputElement>(null);
@@ -129,133 +140,6 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!content.trim() && !commentImage) return;
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Bạn cần đăng nhập để bình luận.");
-        return;
-      }
-      const newComment = await createComment(
-        token,
-        postId,
-        content.trim(),
-        undefined,
-        commentImage
-      );
-      (newComment as any)._isNew = true;
-      setComments((prev) => [newComment, ...prev]);
-      setContent("");
-      setCommentImage(null);
-      if (commentPreview) URL.revokeObjectURL(commentPreview);
-      setCommentPreview(null);
-      onCommentAdded?.();
-      setTimeout(() => {
-        setComments((prev) => prev.map((c) => ({ ...c, _isNew: false })));
-      }, 800);
-    } catch (err) {
-      console.error("Lỗi gửi bình luận:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReplySubmit = async () => {
-    if (!replyingTo || (!replyText.trim() && !replyImage)) return;
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Bạn cần đăng nhập để trả lời.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const fullText = replyTarget ? `@${replyTarget}: ${replyText}` : replyText;
-      const newReply = await createComment(
-        token,
-        postId,
-        fullText,
-        replyingTo,
-        replyImage
-      );
-      (newReply as any)._isNew = true;
-      setComments((prev) =>
-        prev.map((c) => {
-          if (c.id === replyingTo) {
-            return { ...c, children: [...(c.children || []), newReply] };
-          }
-          const childIndex = c.children?.findIndex((ch) => ch.id === replyingTo);
-          if (childIndex !== undefined && childIndex !== -1 && c.children) {
-            const updated = [...c.children];
-            updated.splice(childIndex + 1, 0, newReply);
-            return { ...c, children: updated };
-          }
-          return c;
-        })
-      );
-      setReplyingTo(null);
-      setReplyTarget(null);
-      setReplyText("");
-      if (replyPreview) URL.revokeObjectURL(replyPreview);
-      setReplyPreview(null);
-      setReplyImage(null);
-      onCommentAdded?.();
-      setTimeout(() => {
-        setComments((prev) =>
-          prev.map((c) => ({
-            ...c,
-            children: c.children?.map((ch) => ({ ...ch, _isNew: false })) || [],
-          }))
-        );
-      }, 800);
-    } catch (err) {
-      console.error("Lỗi gửi phản hồi:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleReply = (commentId: number, fullName: string) => {
-    setShowReplyEmojiPicker(false);
-    if (replyingTo === commentId) {
-      setReplyingTo(null);
-      setReplyTarget(null);
-      setReplyText("");
-      if (replyPreview) URL.revokeObjectURL(replyPreview);
-      setReplyPreview(null);
-      setReplyImage(null);
-    } else {
-      setReplyingTo(commentId);
-      setReplyTarget(fullName);
-      setReplyText("");
-      if (replyPreview) URL.revokeObjectURL(replyPreview);
-      setReplyPreview(null);
-      setReplyImage(null);
-    }
-  };
-
-  const toggleCollapse = (id: number) => {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const renderCommentMedia = (imageUrl?: string | null) => {
-    if (!imageUrl) return null;
-    return (
-      <img
-        src={imageUrl}
-        alt="comment-attachment"
-        className="mt-2 max-h-48 rounded-lg border dark:border-gray-700 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-        onClick={() => setPreviewImage(imageUrl)}
-      />
-    );
-  };
-
   const handlePasteImage = (
     e: ClipboardEvent<HTMLInputElement>,
     target: "comment" | "reply"
@@ -285,6 +169,61 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
     }
   };
 
+  const startRecording = async (target: "comment" | "reply") => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+      recorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) chunks.push(ev.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const file = new File([blob], `comment-audio-${Date.now()}.webm`, {
+          type: "audio/webm",
+        });
+        const url = URL.createObjectURL(blob);
+        if (target === "comment") {
+          if (commentAudioPreview) URL.revokeObjectURL(commentAudioPreview);
+          setCommentAudio(file);
+          setCommentAudioPreview(url);
+        } else {
+          if (replyAudioPreview) URL.revokeObjectURL(replyAudioPreview);
+          setReplyAudio(file);
+          setReplyAudioPreview(url);
+        }
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      recorder.start();
+      if (target === "comment") {
+        commentRecorderRef.current = recorder;
+        setIsRecordingComment(true);
+        if (commentAudioPreview) URL.revokeObjectURL(commentAudioPreview);
+        setCommentAudioPreview(null);
+        setCommentAudio(null);
+      } else {
+        replyRecorderRef.current = recorder;
+        setIsRecordingReply(true);
+        if (replyAudioPreview) URL.revokeObjectURL(replyAudioPreview);
+        setReplyAudioPreview(null);
+        setReplyAudio(null);
+      }
+    } catch (err) {
+      console.error("Lỗi bắt đầu ghi âm:", err);
+    }
+  };
+
+  const stopRecording = (target: "comment" | "reply") => {
+    if (target === "comment") {
+      commentRecorderRef.current?.stop();
+      setIsRecordingComment(false);
+    } else {
+      replyRecorderRef.current?.stop();
+      setIsRecordingReply(false);
+    }
+  };
+
   const renderCommentText = (text?: string | null) => {
     if (!text) return null;
     if (text.startsWith("@")) {
@@ -300,6 +239,29 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
       <p className="text-gray-700 text-sm whitespace-pre-line dark:text-gray-300">
         {text}
       </p>
+    );
+  };
+
+  const renderImage = (imageUrl?: string | null) => {
+    if (!imageUrl) return null;
+    return (
+      <img
+        src={imageUrl}
+        alt="comment-attachment"
+        className="mt-2 max-h-48 rounded-lg border dark:border-gray-700 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+        onClick={() => setPreviewImage(imageUrl)}
+      />
+    );
+  };
+
+  const renderAudio = (audioUrl?: string | null) => {
+    if (!audioUrl) return null;
+    return (
+      <div className="mt-2 rounded-lg border p-2 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
+        <audio controls className="w-full">
+          <source src={audioUrl} />
+        </audio>
+      </div>
     );
   };
 
@@ -329,7 +291,8 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                   {c.user.fullName}
                 </div>
                 {renderCommentText(c.content)}
-                {renderCommentMedia(c.image_url)}
+                {renderImage(c.image_url)}
+                {renderAudio((c as any).audio_url)}
                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-1 dark:text-gray-400">
                   <LikeComment commentId={c.id} />
                   <button
@@ -376,6 +339,22 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                   />
                   <button
                     type="button"
+                    onClick={
+                      isRecordingReply
+                        ? () => stopRecording("reply")
+                        : () => startRecording("reply")
+                    }
+                    className={`flex items-center gap-1 text-sm px-2 py-1 rounded-lg transition-colors ${
+                      isRecordingReply
+                        ? "bg-red-100 text-red-600 dark:bg-red-900/40"
+                        : "text-gray-600 hover:text-rose-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {isRecordingReply ? <Square size={16} /> : <Mic size={16} />}
+                    {isRecordingReply ? "Đang ghi" : "Ghi âm"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setShowReplyEmojiPicker((prev) => !prev)}
                     className="text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400"
                   >
@@ -402,6 +381,24 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                         if (replyPreview) URL.revokeObjectURL(replyPreview);
                         setReplyPreview(null);
                         setReplyImage(null);
+                      }}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+                {replyAudioPreview && (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg border p-2 dark:border-gray-700">
+                    <audio controls className="w-full">
+                      <source src={replyAudioPreview} />
+                    </audio>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        URL.revokeObjectURL(replyAudioPreview);
+                        setReplyAudioPreview(null);
+                        setReplyAudio(null);
                       }}
                       className="text-gray-500 hover:text-red-500"
                     >
@@ -451,7 +448,8 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                           {child.user.fullName}
                         </div>
                         {renderCommentText(child.content)}
-                        {renderCommentMedia(child.image_url)}
+                        {renderImage(child.image_url)}
+                        {renderAudio((child as any).audio_url)}
                         <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 dark:text-gray-400">
                           <LikeComment commentId={child.id} />
                           <button
@@ -466,92 +464,6 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
                         </div>
                       </div>
                     </div>
-
-                    {replyingTo === child.id && (
-                      <div className="ml-8 mt-2 relative">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <input
-                            ref={replyInputRef}
-                            type="text"
-                            placeholder={`Phản hồi ${replyTarget}...`}
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            onPaste={(e) => handlePasteImage(e, "reply")}
-                            className="border rounded-full px-3 py-1 w-full md:w-3/4 focus:ring-2 focus:ring-blue-400 text-sm dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
-                          />
-                          <label
-                            htmlFor={`reply-child-image-${child.id}`}
-                            className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-1 rounded-lg hover:bg-gray-100 transition-colors dark:text-gray-300 dark:hover:bg-gray-800"
-                          >
-                            <ImageIcon size={16} />
-                            Ảnh
-                          </label>
-                          <input
-                            id={`reply-child-image-${child.id}`}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0] || null;
-                              setReplyImage(file);
-                              if (replyPreview) URL.revokeObjectURL(replyPreview);
-                              setReplyPreview(file ? URL.createObjectURL(file) : null);
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowReplyEmojiPicker((prev) => !prev)}
-                            className="text-gray-500 hover:text-yellow-500 dark:text-gray-400 dark:hover:text-yellow-400"
-                          >
-                            <Smile size={18} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleReplySubmit}
-                            className="bg-blue-500 text-white px-3 py-1 text-sm rounded-full hover:bg-blue-600 flex items-center"
-                          >
-                            <Send size={14} />
-                          </button>
-                        </div>
-                        {replyPreview && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <img
-                              src={replyPreview}
-                              alt="reply-preview"
-                              className="w-16 h-16 object-cover rounded-lg border dark:border-gray-700"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (replyPreview) URL.revokeObjectURL(replyPreview);
-                                setReplyPreview(null);
-                                setReplyImage(null);
-                              }}
-                              className="text-gray-500 hover:text-red-500"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        )}
-                        {showReplyEmojiPicker && replyingTo === child.id && (
-                          <div className="absolute z-10 mt-2 bg-white border rounded-lg shadow-lg dark:bg-gray-800 dark:border-gray-700">
-                            <div className="flex justify-end">
-                              <button
-                                onClick={() => setShowReplyEmojiPicker(false)}
-                                className="p-1 text-gray-400 hover:text-red-500"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-                            <EmojiPicker
-                              onEmojiClick={onReplyEmojiClick}
-                              height={300}
-                              lazyLoadEmojis
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
                 {c.children.length > 2 && (
@@ -577,6 +489,135 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
       })}
     </div>
   );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim() && !commentImage && !commentAudio) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Bạn cần đăng nhập để bình luận.");
+        return;
+      }
+      const newComment = await createComment(
+        token,
+        postId,
+        content.trim(),
+        undefined,
+        commentImage,
+        commentAudio
+      );
+      (newComment as any)._isNew = true;
+      setComments((prev) => [newComment, ...prev]);
+      setContent("");
+      setCommentImage(null);
+      if (commentPreview) URL.revokeObjectURL(commentPreview);
+      setCommentPreview(null);
+      if (commentAudioPreview) URL.revokeObjectURL(commentAudioPreview);
+      setCommentAudioPreview(null);
+      setCommentAudio(null);
+      onCommentAdded?.();
+      setTimeout(() => {
+        setComments((prev) => prev.map((c) => ({ ...c, _isNew: false })));
+      }, 800);
+    } catch (err) {
+      console.error("Lỗi gửi bình luận:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReplySubmit = async () => {
+    if (!replyingTo || (!replyText.trim() && !replyImage && !replyAudio)) return;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Bạn cần đăng nhập để trả lời.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const fullText = replyTarget ? `@${replyTarget}: ${replyText}` : replyText;
+      const newReply = await createComment(
+        token,
+        postId,
+        fullText,
+        replyingTo,
+        replyImage,
+        replyAudio
+      );
+      (newReply as any)._isNew = true;
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === replyingTo) {
+            return { ...c, children: [...(c.children || []), newReply] };
+          }
+          const childIndex = c.children?.findIndex((ch) => ch.id === replyingTo);
+          if (childIndex !== undefined && childIndex !== -1 && c.children) {
+            const updated = [...c.children];
+            updated.splice(childIndex + 1, 0, newReply);
+            return { ...c, children: updated };
+          }
+          return c;
+        })
+      );
+      setReplyingTo(null);
+      setReplyTarget(null);
+      setReplyText("");
+      if (replyPreview) URL.revokeObjectURL(replyPreview);
+      setReplyPreview(null);
+      setReplyImage(null);
+      if (replyAudioPreview) URL.revokeObjectURL(replyAudioPreview);
+      setReplyAudioPreview(null);
+      setReplyAudio(null);
+      onCommentAdded?.();
+      setTimeout(() => {
+        setComments((prev) =>
+          prev.map((c) => ({
+            ...c,
+            children: c.children?.map((ch) => ({ ...ch, _isNew: false })) || [],
+          }))
+        );
+      }, 800);
+    } catch (err) {
+      console.error("Lỗi gửi phản hồi:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleReply = (commentId: number, fullName: string) => {
+    setShowReplyEmojiPicker(false);
+    if (replyingTo === commentId) {
+      setReplyingTo(null);
+      setReplyTarget(null);
+      setReplyText("");
+      if (replyPreview) URL.revokeObjectURL(replyPreview);
+      setReplyPreview(null);
+      setReplyImage(null);
+      if (replyAudioPreview) URL.revokeObjectURL(replyAudioPreview);
+      setReplyAudioPreview(null);
+      setReplyAudio(null);
+    } else {
+      setReplyingTo(commentId);
+      setReplyTarget(fullName);
+      setReplyText("");
+      if (replyPreview) URL.revokeObjectURL(replyPreview);
+      setReplyPreview(null);
+      setReplyImage(null);
+      if (replyAudioPreview) URL.revokeObjectURL(replyAudioPreview);
+      setReplyAudioPreview(null);
+      setReplyAudio(null);
+    }
+  };
+
+  const toggleCollapse = (id: number) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   return (
     <div className="mt-4">
@@ -609,6 +650,22 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
               setCommentPreview(file ? URL.createObjectURL(file) : null);
             }}
           />
+          <button
+            type="button"
+            onClick={
+              isRecordingComment
+                ? () => stopRecording("comment")
+                : () => startRecording("comment")
+            }
+            className={`flex items-center gap-1 text-sm px-2 py-1 rounded-lg transition-colors ${
+              isRecordingComment
+                ? "bg-red-100 text-red-600 dark:bg-red-900/40"
+                : "text-gray-600 hover:text-rose-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+            }`}
+          >
+            {isRecordingComment ? <Square size={18} /> : <Mic size={18} />}
+            {isRecordingComment ? "Đang ghi" : "Ghi âm"}
+          </button>
           <button
             type="button"
             onClick={() => setShowMainEmojiPicker((prev) => !prev)}
@@ -653,6 +710,24 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
               if (commentPreview) URL.revokeObjectURL(commentPreview);
               setCommentPreview(null);
               setCommentImage(null);
+            }}
+            className="text-gray-500 hover:text-red-500"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      {commentAudioPreview && (
+        <div className="mt-2 flex items-center gap-2 rounded-lg border p-2 dark:border-gray-700">
+          <audio controls className="w-full">
+            <source src={commentAudioPreview} />
+          </audio>
+          <button
+            type="button"
+            onClick={() => {
+              URL.revokeObjectURL(commentAudioPreview);
+              setCommentAudioPreview(null);
+              setCommentAudio(null);
             }}
             className="text-gray-500 hover:text-red-500"
           >
