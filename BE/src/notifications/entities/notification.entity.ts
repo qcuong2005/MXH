@@ -19,6 +19,12 @@ export class Notification {
   // ID người nhận thông báo
   @Column()
   user_id: number;
+  
+  @Column()
+  fullName:string;
+
+  @Column({ nullable: true })
+  avatar: string; // Avatar người gửi (Snapshot)
 
   // ID người gửi/tác động (người like, người comment, người nhắn tin...)
   @Column()

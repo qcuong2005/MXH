@@ -18,7 +18,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import anhmacdinh from "../../image/anhmacdinh.jpg";
-import Header from "./Header";
+
 
 const navigation = [
   { name: "Home", icon: Home, href: "/", notifications: 0 },

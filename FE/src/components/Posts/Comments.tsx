@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, ClipboardEvent } from "react";
+import Link from "next/link"; // Đã thêm import Link
 import {
   Send,
   CornerDownRight,
@@ -11,6 +12,8 @@ import {
   Image as ImageIcon,
   Mic,
   Square,
+  ChevronsDown,
+  ChevronsUp,
 } from "lucide-react";
 import type { Comment as AppComment } from "@/types";
 import { createComment, getCommentsByPost } from "@/services/api";
@@ -28,6 +31,10 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [comments, setComments] = useState<AppComment[]>([]);
+  
+  // State quản lý số lượng hiển thị (Phân trang client-side)
+  const [visibleCount, setVisibleCount] = useState(6);
+
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -46,6 +53,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   const [commentAudioPreview, setCommentAudioPreview] = useState<string | null>(null);
   const [replyAudio, setReplyAudio] = useState<File | null>(null);
   const [replyAudioPreview, setReplyAudioPreview] = useState<string | null>(null);
+  
   const commentRecorderRef = useRef<MediaRecorder | null>(null);
   const replyRecorderRef = useRef<MediaRecorder | null>(null);
   const [isRecordingComment, setIsRecordingComment] = useState(false);
@@ -55,6 +63,11 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   const mainInputRef = useRef<HTMLInputElement>(null);
 
   const { socket } = useSocket();
+
+  // Reset lại số lượng hiển thị khi chuyển bài viết
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [postId]);
 
   const flattenToTwoLevels = (list: AppComment[]): AppComment[] =>
     list.map((c) => ({
@@ -271,6 +284,10 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
         const isCollapsed = collapsed.has(c.id);
         const visibleChildren =
           c.children && isCollapsed ? c.children.slice(0, 2) : c.children;
+        
+        // Đường dẫn profile cha
+        const profileUrl = c.user?.id ? `/profile?userId=${c.user.id}` : "#";
+
         return (
           <div
             key={`parent-${c.id}`}
@@ -279,20 +296,27 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
             }`}
           >
             <div className="flex items-start gap-2 mb-2">
-              <img
-                src={c.user.avatar || anhmacdinh.src}
-                alt="avatar"
-                className={`w-9 h-9 rounded-full object-cover border dark:border-gray-700 ${
-                  (c as any)._isNew ? "animate-ping-avatar" : ""
-                }`}
-              />
+              {/* Avatar Cha có Link */}
+              <Link href={profileUrl} className="shrink-0">
+                <img
+                  src={c.user.avatar || anhmacdinh.src}
+                  alt="avatar"
+                  className={`w-9 h-9 rounded-full object-cover border dark:border-gray-700 hover:opacity-90 transition-opacity ${
+                    (c as any)._isNew ? "animate-ping-avatar" : ""
+                  }`}
+                />
+              </Link>
+
               <div className="flex-1">
-                <div className="font-medium text-gray-800 dark:text-gray-100">
+                {/* Tên Cha có Link */}
+                <Link href={profileUrl} className="font-medium text-gray-800 dark:text-gray-100 hover:underline block">
                   {c.user.fullName}
-                </div>
+                </Link>
+
                 {renderCommentText(c.content)}
                 {renderImage(c.image_url)}
                 {renderAudio((c as any).audio_url)}
+                
                 <div className="flex items-center gap-4 text-xs text-gray-500 mt-1 dark:text-gray-400">
                   <LikeComment commentId={c.id} />
                   <button
@@ -428,44 +452,56 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
 
             {c.children && c.children.length > 0 && (
               <div className="ml-12 mt-2 space-y-3">
-                {visibleChildren?.map((child) => (
-                  <div
-                    key={`child-${child.id}-of-${c.id}`}
-                    className={`flex flex-col transition-all duration-700 ${
-                      (child as any)._isNew ? "animate-fadeSlide" : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <img
-                        src={child.user.avatar || anhmacdinh.src}
-                        alt="avatar"
-                        className={`w-8 h-8 rounded-full object-cover border dark:border-gray-700 ${
-                          (child as any)._isNew ? "animate-ping-avatar" : ""
-                        }`}
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-800 text-sm dark:text-gray-100">
-                          {child.user.fullName}
-                        </div>
-                        {renderCommentText(child.content)}
-                        {renderImage(child.image_url)}
-                        {renderAudio((child as any).audio_url)}
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 dark:text-gray-400">
-                          <LikeComment commentId={child.id} />
-                          <button
-                            onClick={() =>
-                              toggleReply(child.id, child.user.fullName || "")
-                            }
-                            className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
-                          >
-                            <CornerDownRight size={13} /> Trả lời
-                          </button>
-                          <span>{new Date(child.createdAt).toLocaleString()}</span>
+                {visibleChildren?.map((child) => {
+                  // Đường dẫn profile con
+                  const childProfileUrl = child.user?.id ? `/profile?userId=${child.user.id}` : "#";
+                  
+                  return (
+                    <div
+                      key={`child-${child.id}-of-${c.id}`}
+                      className={`flex flex-col transition-all duration-700 ${
+                        (child as any)._isNew ? "animate-fadeSlide" : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {/* Avatar Con có Link */}
+                        <Link href={childProfileUrl} className="shrink-0">
+                          <img
+                            src={child.user.avatar || anhmacdinh.src}
+                            alt="avatar"
+                            className={`w-8 h-8 rounded-full object-cover border dark:border-gray-700 hover:opacity-90 transition-opacity ${
+                              (child as any)._isNew ? "animate-ping-avatar" : ""
+                            }`}
+                          />
+                        </Link>
+
+                        <div className="flex-1">
+                          {/* Tên Con có Link */}
+                          <Link href={childProfileUrl} className="font-medium text-gray-800 text-sm dark:text-gray-100 hover:underline block">
+                            {child.user.fullName}
+                          </Link>
+
+                          {renderCommentText(child.content)}
+                          {renderImage(child.image_url)}
+                          {renderAudio((child as any).audio_url)}
+                          
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 dark:text-gray-400">
+                            <LikeComment commentId={child.id} />
+                            <button
+                              onClick={() =>
+                                toggleReply(child.id, child.user.fullName || "")
+                              }
+                              className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
+                            >
+                              <CornerDownRight size={13} /> Trả lời
+                            </button>
+                            <span>{new Date(child.createdAt).toLocaleString()}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {c.children.length > 2 && (
                   <button
                     onClick={() => toggleCollapse(c.id)}
@@ -736,8 +772,40 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
         </div>
       )}
 
+      {/* --- KHU VỰC HIỂN THỊ DANH SÁCH BÌNH LUẬN (SCROLL + PHÂN TRANG) --- */}
       <div className="mt-3 border-t pt-3 dark:border-gray-700">
-        {renderComments(comments)}
+        
+        {/* Container có Scrollbar và giới hạn chiều cao */}
+        <div className="max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+          {renderComments(comments.slice(0, visibleCount))}
+        </div>
+
+        {/* Nút Xem thêm / Thu gọn */}
+        {comments.length > 6 && (
+          <div className="flex justify-center items-center gap-4 mt-3 border-t pt-2 dark:border-gray-700">
+            {/* Nếu số lượng hiện tại < tổng số, hiện nút Xem thêm */}
+            {visibleCount < comments.length && (
+              <button
+                onClick={() => setVisibleCount((prev) => prev + 10)}
+                className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors dark:text-blue-400"
+              >
+                <ChevronsDown size={16} />
+                Xem thêm bình luận
+              </button>
+            )}
+
+            {/* Nếu số lượng hiện tại > 6, hiện nút Thu gọn */}
+            {visibleCount > 6 && (
+              <button
+                onClick={() => setVisibleCount(6)}
+                className="text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors dark:text-gray-400"
+              >
+                <ChevronsUp size={16} />
+                Thu gọn
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {previewImage && (
