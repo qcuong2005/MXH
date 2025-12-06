@@ -41,8 +41,16 @@ export class CommentEntity {
 
   // ===== CONTENT =====
   @ApiProperty({ description: 'Comment text content', example: 'Haha, good one!' })
-  @Column({ type: 'text' })
-  content: string;
+  @Column({ type: 'text', nullable: true })
+  content: string | null;
+
+  @ApiProperty({
+    description: 'Optional image attached to the comment',
+    example: 'https://example.com/comment.png',
+    required: false,
+  })
+  @Column({ type: 'varchar', length: 1000, nullable: true })
+  image_url?: string | null;
 
   // ===== PARENT / REPLY =====
   @ApiProperty({

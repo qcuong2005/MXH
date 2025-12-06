@@ -19,6 +19,7 @@ export interface Post {
   content: string;
   image_url?: string;
   video_url?: string;
+  audio_url?: string;
   visibility: 'public' | 'friends' | 'private';
   user?: {
     username?: string;
@@ -32,7 +33,8 @@ export interface Post {
 
 export interface Comment {
   id: number;
-  content: string;
+  content?: string | null;
+  image_url?: string | null;
   createdAt: string;
   updatedAt: string;
   user: {

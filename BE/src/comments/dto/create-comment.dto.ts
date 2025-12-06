@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsInt, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsOptional, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateCommentDto {
   @ApiProperty({
@@ -8,22 +9,36 @@ export class CreateCommentDto {
   })
   @IsNotEmpty({ message: 'post_id cannot be empty' })
   @IsInt({ message: 'post_id must be an integer' })
+  @Type(() => Number)
   post_id: number;
 
   @ApiProperty({
     description: 'Content of the comment',
-    example: 'Haha, that’s funny!',
+    example: 'Haha, that is funny!',
+    required: false,
   })
-  @IsNotEmpty({ message: 'content cannot be empty' })
+  @IsOptional()
   @IsString({ message: 'content must be a string' })
-  content: string;
+  @MaxLength(2000)
+  content?: string | null;
+
+  @ApiProperty({
+    description: 'Image attached to the comment',
+    example: 'https://example.com/comment.png',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  image_url?: string | null;
 
   @ApiProperty({
     description: 'Parent comment ID (if this is a reply)',
     example: 2,
     required: false,
   })
-  @IsOptional() // 👈 Cho phép bỏ trống (comment gốc)
+  @IsOptional()
   @IsInt({ message: 'parent_id must be an integer' })
-  parent_Id?: number; // 👈 kiểu dữ liệu number
+  @Type(() => Number)
+  parent_Id?: number;
 }
