@@ -10,7 +10,7 @@ import {
   FileText,
   Flag,
   LogOut,
-  Home,     // Thêm icon Home
+  Home,     
   Menu,
   X,
 } from "lucide-react";
@@ -65,7 +65,6 @@ export default function AdminSidebar() {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
-
               return (
                 <Link
                   key={item.href}
