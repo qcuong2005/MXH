@@ -16,13 +16,15 @@ export async function createComment(
   postId: number,
   content?: string,
   parent_Id?: number,
-  imageFile?: File | null
+  imageFile?: File | null,
+  audioFile?: File | null
 ): Promise<AppComment> {
   const formData = new FormData();
   formData.append("post_id", String(postId));
   if (content) formData.append("content", content);
   if (parent_Id) formData.append("parent_Id", String(parent_Id));
   if (imageFile) formData.append("image", imageFile);
+  if (audioFile) formData.append("audio", audioFile);
 
   const result = await post<AppComment>("/comments", formData, {
     headers: {
