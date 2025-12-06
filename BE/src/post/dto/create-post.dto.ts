@@ -3,15 +3,13 @@ import { IsOptional, IsString, MaxLength, IsIn } from 'class-validator';
 
 export class CreatePostDto {
   @ApiProperty({
-    description: 'ID of the user who creates the post',
-    example: 1,
-  })
-  @ApiProperty({
     description: 'Content of the post',
-    example: 'Hôm nay tôi thấy rất vui 😊',
+    example: 'Hom nay toi thay rat vui',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  content: string;
+  content?: string;
 
   @ApiProperty({
     description: 'Optional image or media URL attached to the post',
@@ -32,6 +30,16 @@ export class CreatePostDto {
   @IsOptional()
   @MaxLength(500)
   video_url?: string;
+
+  @ApiProperty({
+    description: 'Optional recorded audio URL attached to the post',
+    example: 'https://example.com/audio.webm',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  audio_url?: string;
 
   @ApiProperty({
     description: 'Visibility setting for the post',

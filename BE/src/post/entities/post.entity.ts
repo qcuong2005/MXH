@@ -43,6 +43,14 @@ export class Post {
   video_url?: string | null;
 
   @ApiProperty({
+    description: 'Optional recorded audio URL attached to the post',
+    example: 'https://example.com/audio.webm',
+    required: false,
+  })
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  audio_url?: string | null;
+
+  @ApiProperty({
     description: 'Visibility of the post (public, friends, private)',
     example: 'public',
     enum: ['public', 'friends', 'private'],

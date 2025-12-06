@@ -164,7 +164,8 @@ export class CommentsService {
   // CREATE
   // =======================
   async create(createCommentDto: CreateCommentDto, userId: number): Promise<CommentEntity> {
-    const { post_id, content, parent_Id } = createCommentDto;
+    const { post_id, content, parent_Id, image_url } = createCommentDto;
+    const trimmedContent = content?.trim() || '';
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -176,8 +177,8 @@ export class CommentsService {
     });
     if (!post) throw new NotFoundException('Post not found');
 
-    if (!content?.trim()) {
-      throw new BadRequestException('Comment content cannot be empty');
+    if (!trimmedContent && !image_url) {
+      throw new BadRequestException('Comment content or image cannot be empty');
     }
 
     let parentComment: CommentEntity = null;
@@ -196,7 +197,8 @@ export class CommentsService {
     const comment = this.commentRepository.create({
       user: user as any,
       post: post as any,
-      content,
+      content: trimmedContent || null,
+      image_url: image_url || null,
       parent: parentComment ? (parentComment as any) : null,
     } as DeepPartial<CommentEntity>);
 

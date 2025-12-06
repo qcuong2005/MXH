@@ -1,10 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+  HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+} from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommentEntity } from './entities/comment.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import * as fs from 'fs';
 
 @ApiTags('comments')
 @Controller('comments')
@@ -24,9 +42,38 @@ export class CommentsController {
     type: CommentEntity,
   })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input data.' })
-  async create(@Body() createCommentDto: CreateCommentDto, @Request() req) {
-    // Lấy user_id từ token thay vì từ body
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const path = join(__dirname, '..', '..', 'uploads', 'comments');
+          fs.mkdirSync(path, { recursive: true });
+          cb(null, path);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, `comment-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 },
+    }),
+  )
+  async create(
+    @Body() createCommentDto: CreateCommentDto,
+    @UploadedFile() image: Express.Multer.File,
+    @Request() req,
+  ) {
     const userId = req.user?.id;
+    const hasText = createCommentDto.content?.trim();
+    if (!hasText && !image) {
+      throw new BadRequestException('Vui lòng nhập nội dung hoặc đính kèm ảnh.');
+    }
+
+    createCommentDto.content = hasText ? hasText : '';
+    createCommentDto.image_url = image
+      ? `http://localhost:5000/uploads/comments/${image.filename}`
+      : null;
+
     return await this.commentsService.create(createCommentDto, userId);
   }
 

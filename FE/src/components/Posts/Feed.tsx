@@ -907,6 +907,16 @@ export default function Feed() {
                     <source src={p.video_url} type="video/mp4" />
                   </video>
                 )}
+                {p.audio_url && p.audio_url.trim() !== "" && (
+                  <div className="mb-4 rounded-xl border p-3 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
+                    <audio controls className="w-full">
+                      <source src={p.audio_url} />
+                    </audio>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Bản ghi âm
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 text-sm mt-4 border-t pt-3 dark:text-gray-300 dark:border-gray-700">
                   <Likes postId={p.id} type="post" />
