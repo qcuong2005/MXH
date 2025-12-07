@@ -159,7 +159,7 @@ export default function CommentForm({ postId, onCommentAdded }: CommentFormProps
   ) => {
     const items = e.clipboardData?.items;
     if (!items) return;
-    for (const item of items) {
+    for (const item of (items as any)) {
       if (item.type.startsWith("image/")) {
         const blob = item.getAsFile();
         if (!blob) continue;

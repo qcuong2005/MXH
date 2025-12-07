@@ -43,6 +43,9 @@ export interface Comment {
     username: string;
     avatar?: string;
     fullName?: string;
+    image_url?: string;
+    video_url?: string;
+    audio_url?: string;
   };
   post: {
     id: number;
@@ -190,4 +193,13 @@ export interface AdminPost {
     username: string;
     avatar?: string;
   };
+}
+// types/index.ts
+
+export interface DashboardStats {
+  totalUsers: number;
+  newUsersToday: number;
+  totalPosts: number;
+  pendingReports: number;
+  // Bạn có thể thêm các trường khác tùy thích
 }

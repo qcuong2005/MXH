@@ -1,8 +1,3 @@
-// app/(admin)/layout.tsx
-
-import AdminSidebar from "@/components/Admin/AdminSidebar";
-
-
 export default function AdminLayout({
   children,
 }: {
@@ -10,15 +5,11 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <AdminSidebar />
+      {/* Chỉ chừa chỗ cho sidebar, không can thiệp vào content */}
 
-      {/* Main Content */}
-      <div className="flex-1 ml-0 md:ml-64">
-        <div className="p-4 md:p-8">
-          {children}
-        </div>
-      </div>
+        {/* ĐỂ TRỐNG HOÀN TOÀN → để AdminDashboardPage tự xử lý padding */}
+        {children}
+  
     </div>
   );
 }
