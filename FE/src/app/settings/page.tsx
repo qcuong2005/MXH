@@ -13,7 +13,6 @@ import {
 
 import ProfileSettings from "@/components/setting/ProfileSettings";
 import AccountSettings from "@/components/setting/AccountSettings";
-import NotificationSettings from "@/components/setting/NotificationSettings";
 import PrivacySettings from "@/components/setting/PrivacySettings";
 import AppearanceSettings from "@/components/setting/AppearanceSettings";
 import GeneralSettings from "@/components/setting/GeneralSettings";
@@ -21,7 +20,6 @@ import GeneralSettings from "@/components/setting/GeneralSettings";
 const tabs = [
   { id: "profile", label: "Hồ sơ", icon: User },
   { id: "account", label: "Tài khoản", icon: Settings },
-  { id: "notifications", label: "Thông báo", icon: Bell },
   { id: "privacy", label: "Quyền riêng tư", icon: Shield },
   { id: "appearance", label: "Giao diện", icon: Palette },
   { id: "general", label: "Chung", icon: Globe },
@@ -47,7 +45,6 @@ export default function SettingsPage() {
     switch (activeTab) {
       case "profile": return <ProfileSettings />;
       case "account": return <AccountSettings />;
-      case "notifications": return <NotificationSettings />;
       case "privacy": return <PrivacySettings />;
       case "appearance": return <AppearanceSettings />;
       case "general": return <GeneralSettings />;

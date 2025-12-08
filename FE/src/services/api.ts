@@ -1,5 +1,5 @@
 import { del, get, patch, post } from "@/utils/request";
-import type { like, User, Comment as AppComment } from "@/types";
+import type { like, User, Comment as AppComment, PrivacySettingsData } from "@/types";
 
 // Đăng ký
 export async function Register(formData: FormData): Promise<User> {
@@ -132,6 +132,35 @@ export async function updateUserProfile(
   data: { fullName?: string; bio?: string }
 ): Promise<User> {
   const result = await patch<User>("/users/profile/update", data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+
+  return result;
+}
+export async function changePassword(
+  token: string,
+  data: { oldPassword: string; newPassword: string; confirmNewPassword: string }
+): Promise<{ message: string }> {
+  const result = await patch<{ message: string }>("/users/change-password", data, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+
+  return result;
+}
+
+export async function updatePrivacySettings(
+  token: string,
+  data: PrivacySettingsData
+): Promise<User> {
+  const result = await patch<User>("/users/privacy/update", data, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",

@@ -58,4 +58,17 @@ export class User {
   @ApiProperty({ description: 'User last update date' })
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ApiProperty({ description: 'Thời điểm đổi mật khẩu gần nhất', required: false })
+  @Column({ type: 'datetime', nullable: true }) 
+  lastPasswordChange: Date;
+
+
+  @ApiProperty({ description: 'Ai có thể xem hồ sơ', example: 'public', default: 'public' })
+  @Column({ default: 'public' }) // 'public', 'friends', 'private'
+  profile_visibility: string;
+
+  @ApiProperty({ description: 'Hiển thị email công khai', example: false, default: false })
+  @Column({ default: false })
+  is_email_public: boolean;
 }

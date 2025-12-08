@@ -1,6 +1,6 @@
 import { SocketProvider } from '@/components/SocketContext'
 import './globals.css'
-import PostModal from '@/components/Posts/PostModal'
+
 
 export const metadata = {
   title: 'Social Media',
@@ -18,7 +18,7 @@ export default function RootLayout({
       <body>
         <SocketProvider>
         {children}
-        <PostModal/>
+
         </SocketProvider>
         </body>
     </html>
