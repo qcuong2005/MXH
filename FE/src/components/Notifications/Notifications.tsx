@@ -461,7 +461,7 @@ export default function Notifications({ currentUser }: Props) {
       });
     };
     socket.on("new_notification", handleNewNotification);
-    return () => socket.off("new_notification", handleNewNotification);
+    return () => { socket.off("new_notification", handleNewNotification)};
   }, [socket, currentUser]);
 
   // --- 2. XỬ LÝ CLICK ---

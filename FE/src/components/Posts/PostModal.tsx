@@ -265,6 +265,7 @@ interface Props {
 }
 
 export default function PostModal({ postId, onClose }: Props) {
+  
   const [postData, setPostData] = useState<Post | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

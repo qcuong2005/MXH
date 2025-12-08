@@ -203,3 +203,9 @@ export interface DashboardStats {
   pendingReports: number;
   // Bạn có thể thêm các trường khác tùy thích
 }
+
+export interface PrivacySettingsData {
+  profile_visibility?: string; // 'public' | 'friends' | 'private'
+  is_email_public?: boolean;
+  show_online_status?: boolean;
+}
