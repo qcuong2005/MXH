@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import {
   X,
   UserPlus,
   Check,
+  Bookmark,
 } from "lucide-react";
 import CreatePosts from "./CreatePosts";
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
@@ -22,14 +24,17 @@ import Likes from "./likes";
 import { followUser, getMyFollowing, unfollowUser } from "@/services/follows";
 import GoldenTick from "../GoldenTick";
 import { useSocket } from "../SocketContext";
+import { getMySavedPosts, toggleSavePost } from "@/services/save";
 
-// --- COMPONENT HIỂN THỊ NỘI DUNG RÚT GỌN (MỚI THÊM) ---
+// --- QUAN TRỌNG: Import hàm API lưu bài viết ---
+
+
+// --- COMPONENT HIỂN THỊ NỘI DUNG RÚT GỌN ---
 const ExpandableText = ({ content }: { content: string }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const WORD_LIMIT = 100;
 
   if (!content) return null;
-
   const words = content.trim().split(/\s+/);
 
   if (words.length <= WORD_LIMIT) {
@@ -41,7 +46,6 @@ const ExpandableText = ({ content }: { content: string }) => {
   }
 
   const truncatedContent = words.slice(0, WORD_LIMIT).join(" ") + "...";
-
   return (
     <div className="mb-3 text-base sm:text-lg text-gray-700 dark:text-gray-300">
       <p className="whitespace-pre-line inline">
@@ -49,8 +53,8 @@ const ExpandableText = ({ content }: { content: string }) => {
       </p>
       <button
         onClick={(e) => {
-            e.stopPropagation();
-            setIsExpanded(!isExpanded);
+          e.stopPropagation();
+          setIsExpanded(!isExpanded);
         }}
         className="text-blue-600 font-medium hover:underline ml-2 text-sm dark:text-blue-400 cursor-pointer"
       >
@@ -60,7 +64,7 @@ const ExpandableText = ({ content }: { content: string }) => {
   );
 };
 
-// --- COMPONENT MODAL XEM ẢNH (Lightbox) ---
+// --- COMPONENT MODAL XEM ẢNH ---
 const ImageModal = ({ src, onClose }: { src: string; onClose: () => void }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -97,9 +101,7 @@ export default function Feed() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [commentCounts, setCommentCounts] = useState<Record<number, number>>(
-    {}
-  );
+  const [commentCounts, setCommentCounts] = useState<Record<number, number>>({});
   const { socket } = useSocket();
   const [shareCounts, setShareCounts] = useState<Record<number, number>>({});
   const [openCommentPost, setOpenCommentPost] = useState<number | null>(null);
@@ -109,8 +111,13 @@ export default function Feed() {
   const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<number>(0);
 
+  // State quản lý bài viết đã lưu
+  const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+
   const observer = useRef<IntersectionObserver | null>(null);
   const limit = 5;
+
+  // Trong Feed.tsx -> useEffect
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -118,37 +125,44 @@ export default function Feed() {
     setCurrentUserId(userId);
 
     if (token) {
+      // 1. Lấy danh sách following (Giữ nguyên)
       getMyFollowing(token)
         .then((response: any) => {
-          const list = Array.isArray(response)
-            ? response
-            : response?.data || [];
-
+          const list = Array.isArray(response) ? response : response?.data || [];
           const ids = new Set<number>();
-
           list.forEach((item: any) => {
             if (item.followingId) ids.add(Number(item.followingId));
             else if (item.following_id) ids.add(Number(item.following_id));
             else if (item.id) ids.add(Number(item.id));
           });
-
           setFollowingIds(ids);
         })
         .catch((err) => console.error("❌ Lỗi lấy danh sách follow:", err));
+        
+      // 2. --- KHẮC PHỤC LỖI MẤT TRẠNG THÁI LƯU ---
+      // Gọi API lấy danh sách bài đã lưu để cập nhật state savedIds
+      getMySavedPosts(token)
+        .then((res: any) => {
+             // Kiểm tra dữ liệu trả về, đảm bảo là mảng
+             const savedList = Array.isArray(res) ? res : (res.data || []);
+             
+             // Lọc ra danh sách ID và đưa vào Set
+             const ids = new Set<number>(savedList.map((post: Post) => post.id));
+             setSavedIds(ids);
+        })
+        .catch((err) => {
+            console.error("Lỗi tải danh sách đã lưu:", err);
+        });
     }
   }, []);
 
+  // Socket Logic
   useEffect(() => {
     if (!socket || !currentUserId) return;
-
     const handleNewNotification = (notif: any) => {
-      console.log("🔔 Feed nhận thông báo realtime:", notif);
-
       if (Number(notif.user_id) !== currentUserId) return;
-
       if (notif.type === "NEW_LIKE") {
         const postId = extractPostId(notif);
-        
         if (postId) {
           setPosts((prev) =>
             prev.map((post) =>
@@ -159,10 +173,8 @@ export default function Feed() {
           );
         }
       }
-
       if (notif.type === "NEW_COMMENT") {
         const postId = extractPostId(notif);
-   
         if (postId) {
           setCommentCounts((prev) => ({
             ...prev,
@@ -171,9 +183,7 @@ export default function Feed() {
         }
       }
     };
-
     socket.on("new_notification", handleNewNotification);
-
     return () => {
       socket.off("new_notification", handleNewNotification);
     };
@@ -189,47 +199,31 @@ export default function Feed() {
   };
 
   const handleFollowToggle = async (authorId: number) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Bạn cần đăng nhập!");
-      return;
-    }
-
-    const isFollowing = followingIds.has(authorId);
-
-    setFollowingIds((prev) => {
-      const next = new Set(prev);
-      if (isFollowing) next.delete(authorId);
-      else next.add(authorId);
-      return next;
-    });
-
-    try {
-      if (isFollowing) {
-        await unfollowUser(authorId, token);
-      } else {
-        await followUser(authorId, token);
-      }
-    } catch (error) {
-      console.error("Lỗi follow toggle:", error);
-      setFollowingIds((prev) => {
+     const token = localStorage.getItem("token");
+     if (!token) { alert("Bạn cần đăng nhập!"); return; }
+     const isFollowing = followingIds.has(authorId);
+     setFollowingIds((prev) => {
         const next = new Set(prev);
-        if (isFollowing) next.add(authorId);
-        else next.delete(authorId);
+        if (isFollowing) next.delete(authorId); else next.add(authorId);
         return next;
-      });
-    }
+     });
+     try {
+        if (isFollowing) await unfollowUser(authorId, token);
+        else await followUser(authorId, token);
+     } catch (error) {
+        setFollowingIds((prev) => {
+           const next = new Set(prev);
+           if (isFollowing) next.add(authorId); else next.delete(authorId);
+           return next;
+        });
+     }
   };
 
   const getVisibilityIcon = (visibility: string) => {
     switch (visibility) {
-      case "private":
-        return <Lock size={14} className="text-gray-500" />;
-      case "friends":
-        return <Users size={14} className="text-gray-500" />;
-      case "public":
-      default:
-        return <Globe size={14} className="text-gray-500" />;
+      case "private": return <Lock size={14} className="text-gray-500" />;
+      case "friends": return <Users size={14} className="text-gray-500" />;
+      case "public": default: return <Globe size={14} className="text-gray-500" />;
     }
   };
 
@@ -251,15 +245,12 @@ export default function Feed() {
       const res = await fetchAPI(`/post?page=${page}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const result = Array.isArray(res)
-        ? { data: res, total: res.length }
-        : res;
+      const result = Array.isArray(res) ? { data: res, total: res.length } : res;
       const newPosts: Post[] = result.data as Post[];
       if (newPosts.length === 0) {
         setHasMore(false);
         return;
       }
-
       const fakeShares: Record<number, number> = {};
       const initialComments: Record<number, number> = {};
       await Promise.all(
@@ -273,7 +264,6 @@ export default function Feed() {
           }
         })
       );
-
       setPosts((prev) => {
         const existingIds = new Set(prev.map((p: Post) => p.id));
         const uniqueNew = newPosts.filter((p: Post) => !existingIds.has(p.id));
@@ -289,9 +279,7 @@ export default function Feed() {
     }
   }, [page, hasMore, loading]);
 
-  useEffect(() => {
-    loadPosts();
-  }, [page]);
+  useEffect(() => { loadPosts(); }, [page]);
 
   const lastPostRef = useCallback(
     (node: HTMLLIElement | null) => {
@@ -308,29 +296,57 @@ export default function Feed() {
   );
 
   const handleShare = async (post: Post) => {
-    setShareCounts((prev) => ({
-      ...prev,
-      [post.id]: (prev[post.id] || 0) + 1,
-    }));
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: post.title,
-          text: post.content,
-          url: window.location.href,
-        });
-      } catch {
-        console.warn("Người dùng huỷ chia sẻ.");
-      }
-    } else {
-      alert("Trình duyệt không hỗ trợ chia sẻ.");
-    }
+     setShareCounts((prev) => ({ ...prev, [post.id]: (prev[post.id] || 0) + 1 }));
+     if (navigator.share) {
+       try { await navigator.share({ title: post.title, text: post.content, url: window.location.href }); } catch { console.warn("Cancel share"); }
+     } else { alert("Trình duyệt không hỗ trợ chia sẻ."); }
   };
+
   const handleCommentAdded = (postId: number) => {
-    setCommentCounts((prev) => ({
-      ...prev,
-      [postId]: (prev[postId] || 0) + 1,
-    }));
+    setCommentCounts((prev) => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
+  };
+
+  // --- HÀM XỬ LÝ LƯU BÀI VIẾT ĐÃ FIX ---
+  const handleSavePost = async (post: Post) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("Bạn cần đăng nhập để lưu bài viết.");
+        return;
+    }
+
+    const isSaved = savedIds.has(post.id);
+
+    // 1. Optimistic Update (Cập nhật UI ngay lập tức)
+    setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (isSaved) next.delete(post.id);
+        else next.add(post.id);
+        return next;
+    });
+
+    try {
+        // 2. Gọi API chuẩn xác: /saves/toggle
+        const result = await toggleSavePost(token, post.id);
+
+        // 3. (Tuỳ chọn) Đồng bộ lại state nếu kết quả server trả về khác UI
+        if (result && typeof result.saved === 'boolean') {
+             setSavedIds((prev) => {
+                const next = new Set(prev);
+                if (result.saved) next.add(post.id);
+                else next.delete(post.id);
+                return next;
+             });
+        }
+    } catch (error) {
+        console.error("Lỗi lưu bài viết:", error);
+        // 4. Nếu lỗi, hoàn tác UI
+        setSavedIds((prev) => {
+            const next = new Set(prev);
+            if (isSaved) next.add(post.id);
+            else next.delete(post.id);
+            return next;
+        });
+    }
   };
 
   return (
@@ -338,20 +354,18 @@ export default function Feed() {
       <CreatePosts posts={posts} setPosts={setPosts} />
 
       {posts.length === 0 && !loading ? (
-        <p className="text-center text-gray-500 dark:text-gray-400">
-          Chưa có bài viết nào.
-        </p>
+        <p className="text-center text-gray-500 dark:text-gray-400">Chưa có bài viết nào.</p>
       ) : (
         <ul className="space-y-6">
           {posts.map((p, index) => {
             const isLast = index === posts.length - 1;
-            const profileUrl = (p.user as any)?.id
-              ? `/profile?userId=${(p.user as any).id}`
-              : "#";
-
+            const profileUrl = (p.user as any)?.id ? `/profile?userId=${(p.user as any).id}` : "#";
             const authorId = Number((p.user as any)?.id);
             const isFollowing = authorId ? followingIds.has(authorId) : false;
             const isMe = authorId === currentUserId;
+            
+            // Kiểm tra xem bài viết đã lưu chưa
+            const isSaved = savedIds.has(p.id);
 
             return (
               <li
@@ -366,20 +380,15 @@ export default function Feed() {
                       src={p.user?.avatar || anhmacdinh.src}
                       alt="avatar"
                       className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border dark:border-gray-700 hover:opacity-90 transition-opacity"
-                      onError={(e) => {
-                        e.currentTarget.src = anhmacdinh.src;
-                      }}
+                      onError={(e) => { e.currentTarget.src = anhmacdinh.src; }}
                     />
                   </Link>
-
                   <div className="min-w-0 flex flex-col justify-center">
                     <div className="flex items-center flex-wrap gap-2">
                       <h4 className="font-semibold text-gray-800 truncate dark:text-gray-100">
                         {p.user?.fullName || "Người dùng ẩn danh"}
-                        {(Number((p.user as any)?.id) === 1 ||
-                          (p.user as any)?.is_verified) && <GoldenTick />}
+                        {(Number((p.user as any)?.id) === 1 || (p.user as any)?.is_verified) && <GoldenTick />}
                       </h4>
-
                       {!isMe && authorId && (
                         <>
                           <span className="text-gray-300 text-xs">•</span>
@@ -391,26 +400,15 @@ export default function Feed() {
                                 : "text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full"
                             }`}
                           >
-                            {isFollowing ? (
-                              <>
-                                <Check size={14} /> Đang theo dõi
-                              </>
-                            ) : (
-                              <>
-                                <UserPlus size={14} /> Theo dõi
-                              </>
-                            )}
+                            {isFollowing ? <><Check size={14} /> Đang theo dõi</> : <><UserPlus size={14} /> Theo dõi</>}
                           </button>
                         </>
                       )}
                     </div>
-
                     <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       <span>{new Date(p.createdAt).toLocaleString()}</span>
                       <span>•</span>
-                      <div className="flex items-center">
-                        {getVisibilityIcon(p.visibility)}
-                      </div>
+                      <div className="flex items-center">{getVisibilityIcon(p.visibility)}</div>
                     </div>
                   </div>
                 </div>
@@ -419,59 +417,64 @@ export default function Feed() {
                 <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 break-words dark:text-gray-100">
                   {p.title}
                 </h3>
-                
-       
                 <ExpandableText content={p.content} />
-                {/* ------------------- */}
 
+                {/* MEDIA RENDERING */}
                 {p.image_url && p.image_url.trim() !== "" && (
                   <img
                     src={p.image_url}
                     alt="post"
                     className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700 cursor-pointer hover:opacity-95 transition-opacity"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
                     onClick={() => setSelectedImage(p.image_url || "")}
                   />
                 )}
-
                 {p.video_url && p.video_url.trim() !== "" && (
-                  <video
-                    controls
-                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700"
-                  >
-                    <source src={p.video_url} type="video/mp4" />
-                  </video>
+                    <video controls className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700">
+                        <source src={p.video_url} type="video/mp4" />
+                    </video>
                 )}
                 {p.audio_url && p.audio_url.trim() !== "" && (
-                  <div className="mb-4 rounded-xl border p-3 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
-                    <audio controls className="w-full">
-                      <source src={p.audio_url} />
-                    </audio>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Bản ghi âm
-                    </p>
-                  </div>
+                    <div className="mb-4 rounded-xl border p-3 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
+                        <audio controls className="w-full"><source src={p.audio_url} /></audio>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Bản ghi âm</p>
+                    </div>
                 )}
 
+                {/* FOOTER ACTIONS */}
                 <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 text-sm mt-4 border-t pt-3 dark:text-gray-300 dark:border-gray-700">
-                  <Likes postId={p.id} type="post" />
+                  <div className="flex items-center gap-4">
+                      <Likes postId={p.id} type="post" />
+                      
+                      <button
+                        onClick={() => setOpenCommentPost(openCommentPost === p.id ? null : p.id)}
+                        className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
+                      >
+                        <MessageCircle size={18} />
+                        <span className="hidden sm:inline">{commentCounts[p.id] || 0} Bình luận</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleShare(p)}
+                        className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400"
+                      >
+                        <Share2 size={18} />
+                        <span className="hidden sm:inline">{shareCounts[p.id] || 0} Chia sẻ</span>
+                      </button>
+                  </div>
+
+                  {/* NÚT SAVE */}
                   <button
-                    onClick={() =>
-                      setOpenCommentPost(openCommentPost === p.id ? null : p.id)
-                    }
-                    className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
+                    onClick={() => handleSavePost(p)}
+                    className={`flex items-center gap-1 transition-colors ${
+                        isSaved 
+                        ? "text-yellow-500 hover:text-yellow-600" 
+                        : "text-gray-500 hover:text-yellow-500 dark:text-gray-400"
+                    }`}
+                    title={isSaved ? "Bỏ lưu" : "Lưu bài viết"}
                   >
-                    <MessageCircle size={18} />
-                    <span>{commentCounts[p.id] || 0} Bình luận</span>
-                  </button>
-                  <button
-                    onClick={() => handleShare(p)}
-                    className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400"
-                  >
-                    <Share2 size={18} />
-                    <span>{shareCounts[p.id] || 0} Chia sẻ</span>
+                    <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} />
+                    <span className="hidden sm:inline">{isSaved ? "Đã lưu" : "Lưu"}</span>
                   </button>
                 </div>
 
@@ -488,18 +491,12 @@ export default function Feed() {
           })}
         </ul>
       )}
-
       {loading && (
         <div className="flex justify-center py-6">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-600 border-solid"></div>
         </div>
       )}
-      {selectedImage && (
-        <ImageModal
-          src={selectedImage}
-          onClose={() => setSelectedImage(null)}
-        />
-      )}
+      {selectedImage && <ImageModal src={selectedImage} onClose={() => setSelectedImage(null)} />}
     </div>
   );
 }
