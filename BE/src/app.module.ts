@@ -19,11 +19,12 @@ import { GroupMessagesModule } from './group-messages/group-messages.module';
 import { GroupCallModule } from './group-call/group-call.module';
 import { FollowsModule } from './follows/follows.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SaveModule } from './save/save.module';
 
 
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule, GroupCallModule, FollowsModule, NotificationsModule,],
+  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule, GroupCallModule, FollowsModule, NotificationsModule, SaveModule,],
   providers: [
     {
       provide: APP_GUARD,
