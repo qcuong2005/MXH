@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Reply as ReplyIcon } from "lucide-react";
 import anhmacdinh from "../../../image/anhmacdinh.jpg";
+import { fetchAPI } from "@/lib/api";
+
 
 interface Message {
   id: number | string;
@@ -17,6 +19,14 @@ interface Message {
   };
   group_id?: number;
   conversation_id?: number;
+}
+
+interface User {
+  id: number;
+  name?: string;
+  username?: string;
+  avatar?: string;
+  // Thêm các field khác nếu cần
 }
 
 interface MessagesListProps {
@@ -36,6 +46,31 @@ export default function MessagesList({
 }: MessagesListProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // State lưu danh sách tất cả users
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+
+  // Tạo map để tra cứu nhanh theo user id
+  const userMap = useMemo(() => {
+    const map: { [userId: number]: User } = {};
+    allUsers.forEach((user) => {
+      map[user.id] = user;
+    });
+    return map;
+  }, [allUsers]);
+
+  // Fetch danh sách users một lần
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetchAPI("/users");
+        setAllUsers(res); // res phải là mảng users
+      } catch (err) {
+        console.error("Lỗi khi fetch users:", err);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Auto scroll xuống cuối
   useEffect(() => {
@@ -63,14 +98,28 @@ export default function MessagesList({
   const getReplyDisplayName = (replyMsg: Message) => {
     if (!replyMsg) return "Tin nhắn đã xóa";
     if (replyMsg.sender_id === currentUserId) return "Bạn";
-    // Ưu tiên hiển thị tên người gửi trong group
-    if (replyMsg.sender) return replyMsg.sender.name || replyMsg.sender.username;
+
+    const user = userMap[replyMsg.sender_id];
+    if (user) return user.name || user.username || "Người dùng";
+
+    // Fallback nếu chưa có trong map
     return selectedChat?.name || selectedChat?.username || "Người dùng";
   };
 
-  const getAvatarSrc = (avatar: string | undefined | null) => {
-    if (avatar && avatar.trim() !== "") return avatar;
+  // Lấy avatar từ userMap theo sender_id
+  const getAvatarSrc = (senderId: number) => {
+    const user = userMap[senderId];
+    if (user && user.avatar && user.avatar.trim() !== "") {
+      return user.avatar.trim();
+    }
     return anhmacdinh.src;
+  };
+
+  // Lấy tên người gửi (dùng cho group)
+  const getSenderName = (senderId: number) => {
+    const user = userMap[senderId];
+    if (user) return user.name || user.username || "Thành viên";
+    return "Thành viên";
   };
 
   return (
@@ -79,25 +128,24 @@ export default function MessagesList({
         const isMine = msg.sender_id === currentUserId;
         const msgKey = msg.id.toString();
 
-        // --- LOGIC CHUỖI TIN NHẮN (SEQUENCE) ---
+        // Logic chuỗi tin nhắn
         const prevMsg = messages[index - 1];
         const isFirstInSequence = !prevMsg || prevMsg.sender_id !== msg.sender_id;
-
         const nextMsg = messages[index + 1];
         const isLastInSequence = !nextMsg || nextMsg.sender_id !== msg.sender_id;
 
-        // Fallback name nếu msg.sender null
-        const senderName = msg.sender?.name || msg.sender?.username || "Thành viên";
-
-        const shouldShowAvatarColumn = !isMine; 
+        const senderName = getSenderName(msg.sender_id);
+        const shouldShowAvatarColumn = !isMine;
 
         return (
           <div
             key={msgKey}
-            ref={(el) => { messageRefs.current[msgKey] = el; }}
+            ref={(el) => {
+              messageRefs.current[msgKey] = el;
+            }}
             className={`flex flex-col mb-0.5 ${isMine ? "items-end" : "items-start"} group/row transition-all`}
           >
-            {/* ✅ TÊN NGƯỜI GỬI: Chỉ hiện ở Group + Tin đầu chuỗi + Không phải tôi */}
+            {/* Tên người gửi (chỉ group + tin đầu chuỗi + không phải mình) */}
             {!isMine && isGroup && isFirstInSequence && (
               <span className="text-[11px] text-gray-500 dark:text-gray-400 ml-[44px] mb-1 mt-2 font-medium">
                 {senderName}
@@ -105,71 +153,66 @@ export default function MessagesList({
             )}
 
             <div className={`flex w-full ${isMine ? "justify-end" : "justify-start"} items-end`}>
-              
-              {/* ✅ CỘT AVATAR (Luôn dành chỗ 32px + margin để thẳng hàng) */}
+              {/* Cột avatar (dành chỗ cố định) */}
               {shouldShowAvatarColumn && (
                 <div className="w-8 flex-shrink-0 mr-2 flex flex-col justify-end">
-                  {/* Chỉ hiện ảnh thật ở tin CUỐI CÙNG của chuỗi */}
                   {isLastInSequence ? (
                     <img
-                      src={getAvatarSrc(msg.sender?.avatar)}
-                      alt="Avt"
+                      src={getAvatarSrc(msg.sender_id)}
+                      alt="Avatar"
                       className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-700 shadow-sm bg-white"
                     />
                   ) : (
-                    // Spacer rỗng để giữ chỗ cho các tin ở giữa/đầu chuỗi
                     <div className="w-8" />
                   )}
                 </div>
               )}
 
-              {/* KHỐI NỘI DUNG + NÚT REPLY */}
+              {/* Khối nội dung + nút reply */}
               <div className={`max-w-[75%] flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
-                
-                {/* BUBBLE TIN NHẮN */}
+                {/* Bubble tin nhắn */}
                 <div
                   className={`px-3 py-2 shadow-sm relative text-sm break-words
-                    ${isMine 
-                      ? "bg-blue-600 text-white rounded-2xl rounded-br-sm" 
+                    ${isMine
+                      ? "bg-blue-600 text-white rounded-2xl rounded-br-sm"
                       : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl rounded-bl-sm border border-gray-100 dark:border-gray-700"
                     }
-                    /* Logic bo góc mềm mại (Facebook style) */
                     ${!isMine && !isFirstInSequence ? "rounded-tl-md" : ""}
                     ${!isMine && !isLastInSequence ? "rounded-bl-md" : ""}
                     ${isMine && !isFirstInSequence ? "rounded-tr-md" : ""}
                     ${isMine && !isLastInSequence ? "rounded-br-md" : ""}
                   `}
                 >
-                  {/* REPLY HEADER */}
+                  {/* Reply header */}
                   {msg.reply_to && (
                     <div
                       className={`mb-1 p-2 rounded-md border-l-2 text-xs cursor-pointer select-none transition-colors
-                        ${isMine 
-                          ? "border-blue-300 bg-white/10 hover:bg-white/20" 
+                        ${isMine
+                          ? "border-blue-300 bg-white/10 hover:bg-white/20"
                           : "border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200"
                         }
                       `}
                       onClick={() => msg.reply_to && scrollToAndHighlight(msg.reply_to.id)}
                     >
-                       <span className={`font-bold block mb-0.5 ${isMine ? "text-blue-100" : "text-blue-600"}`}>
-                          {getReplyDisplayName(msg.reply_to)}
-                       </span>
-                       <span className={`truncate block max-w-[150px] ${isMine ? "text-white/80" : "text-gray-500 dark:text-gray-400"}`}>
-                          {truncateText(msg.reply_to.content, 8)}
-                       </span>
+                      <span className={`font-bold block mb-0.5 ${isMine ? "text-blue-100" : "text-blue-600"}`}>
+                        {getReplyDisplayName(msg.reply_to)}
+                      </span>
+                      <span className={`truncate block max-w-[150px] ${isMine ? "text-white/80" : "text-gray-500 dark:text-gray-400"}`}>
+                        {truncateText(msg.reply_to.content, 8)}
+                      </span>
                     </div>
                   )}
 
-                  {/* NỘI DUNG CHÍNH */}
+                  {/* Nội dung chính */}
                   <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                  
-                  {/* THỜI GIAN (Hiện khi hover hoặc luôn hiện nhỏ) */}
+
+                  {/* Thời gian */}
                   <span className={`text-[9px] block w-full text-right mt-1 opacity-60 ${isMine ? "text-blue-100" : "text-gray-400"}`}>
                     {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
 
-                {/* NÚT REPLY */}
+                {/* Nút reply */}
                 <button
                   onClick={() => setReplyMessage(msg)}
                   className="p-1.5 rounded-full text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-0 group-hover/row:opacity-100 transition-all scale-90 active:scale-95"

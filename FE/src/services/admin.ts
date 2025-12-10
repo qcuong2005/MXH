@@ -30,7 +30,6 @@ export async function deletePostAdmin(postId: number): Promise<any> {
 }
 
 export async function deleteUserAdmin(id: number): Promise<void> {
-  // Backend của bạn định nghĩa @Delete(':id') nên url sẽ là /users/1, /users/2...
   const result = await del<void>(`/users/${id}`, {
     headers: {
       Accept: "application/json",
