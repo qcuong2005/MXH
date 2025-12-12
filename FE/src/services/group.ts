@@ -2,41 +2,30 @@
 import { get, post, del, patch } from "@/utils/request";
 
 // 1. Import tất cả các types từ file interface riêng của bạn
-import type {
-  Group,
-  GroupMember,
-  CreateGroupDto,
-  Message, // ✅ GIỮ: Nếu cần cho sendGroupMessageApi
-} from "@/types"; // (Hãy đảm bảo đường dẫn này đúng - THÊM avatar_image vào CreateGroupDto nếu chưa có)
+import type { Group, GroupMember, CreateGroupDto, Message } from "@/types";
 
-// --- Các hàm API Service ---
-
-/**
- * Tạo một nhóm mới (CẬP NHẬT: CHỈ HỖ TRỢ UPLOAD AVATAR_IMAGE)
- * (POST /groups)
- */
 export async function createGroupApi(
   token: string,
   dto: CreateGroupDto, // 👈 Dùng type đã import
-  avatarImage?: File   // 👈 GIỮ: Chỉ cho avatar
+  avatarImage?: File // 👈 GIỮ: Chỉ cho avatar
 ): Promise<Group> {
   const formData = new FormData();
-  
-  // Append fields từ DTO
- Object.keys(dto).forEach(key => {
-    // Ép kiểu (dto as any) để TypeScript không bắt bẻ nữa
-    const value = (dto as any)[key]; 
 
-    if (key === 'member_ids' && Array.isArray(value)) {
-        formData.append(key, value.join(','));
+  // Append fields từ DTO
+  Object.keys(dto).forEach((key) => {
+    // Ép kiểu (dto as any) để TypeScript không bắt bẻ nữa
+    const value = (dto as any)[key];
+
+    if (key === "member_ids" && Array.isArray(value)) {
+      formData.append(key, value.join(","));
     } else {
-        formData.append(key, value as string);
+      formData.append(key, value as string);
     }
-});
+  });
 
   // 👈 GIỮ: Append avatar_image nếu có
   if (avatarImage) {
-    formData.append('avatar_image', avatarImage);
+    formData.append("avatar_image", avatarImage);
   }
 
   // 👈 XÓA: Append cover_image (không cần nữa)
@@ -77,7 +66,7 @@ export async function getGroupMembersApi(
     },
   });
 }
-  
+
 /**
  * Thêm thành viên vào nhóm
  * (POST /group-members)
@@ -194,7 +183,7 @@ export async function getGroupMessagesApi(
   groupId: number,
   limit?: number // Optional limit
 ): Promise<Message[]> {
-  const params = limit ? `?limit=${limit}` : '';
+  const params = limit ? `?limit=${limit}` : "";
   return await get<Message[]>(`/group-messages/${groupId}${params}`, {
     headers: {
       Authorization: `Bearer ${token}`,

@@ -1,5 +1,5 @@
 // services/message.ts
-import { get, post } from "@/utils/request";
+import { del, get, post } from "@/utils/request";
 import type { Message } from "@/types";
 
 // Lấy hoặc tạo cuộc hội thoại với user khác
@@ -58,6 +58,17 @@ export async function getMessagesByConversation(
   conversationId: number,
 ): Promise<Message[]> {
   return await get<Message[]>(`/messages/conversation/${conversationId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+}
+export async function deleteConversationApi(
+  token: string,
+  conversationId: number
+): Promise<any> {
+  return await del(`/conversations/${conversationId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
