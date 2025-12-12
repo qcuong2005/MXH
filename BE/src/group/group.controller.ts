@@ -75,11 +75,11 @@ export class GroupController {
     const user = req.user as User;
 
     // 11. Xử lý file
-    const coverImageFile = files?.find(f => f.fieldname === 'cover_image');
+    const coverImageFile = files?.find(f => f.fieldname === 'avatar_image');
 
     if (coverImageFile) {
       // 12. Tạo URL (giống ví dụ của bạn)
-      dto.cover_image = `http://localhost:5000/uploads/groups/${coverImageFile.filename}`;
+      dto.cover_image = `http://localhost:5000/uploads/groups/covers/${coverImageFile.filename}`;
     }
 
     // --- 13. (RẤT QUAN TRỌNG) Xử lý DTO từ form-data ---
@@ -91,7 +91,7 @@ export class GroupController {
       dto.moderation = dto.moderation.toString() === 'true';
     }
 
-    // Chuyển "2,3,4" hoặc [ "2", "3" ] -> [ 2, 3, 4 ]
+
     if (dto.member_ids && typeof dto.member_ids === 'string') {
         dto.member_ids = (dto.member_ids as string).split(',').map(Number);
     } else if (dto.member_ids && Array.isArray(dto.member_ids)) {

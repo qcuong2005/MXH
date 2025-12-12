@@ -1,6 +1,8 @@
+
+
+
 // "use client";
 // import Image from "next/image";
-// // 1. Thêm import ArrowLeft
 // import {
 //   Phone,
 //   Video,
@@ -10,16 +12,16 @@
 //   Smile,
 //   ArrowLeft,
 // } from "lucide-react";
-//   import MessagesList from "@/components/Chat/Messages";
-//   import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+// import MessagesList from "@/components/Chat/Messages";
+// import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 // import anhmacdinh from "../../../image/anhmacdinh.jpg";
-// import { useEffect, useRef, useState, useCallback } from "react";
+// import { useEffect, useRef, useState } from "react";
 // import { useRouter } from "next/navigation";
 // import { useSocket } from "@/components/SocketContext";
-// import CallPage, { ReceiverParams } from "@/components/Chat/Call";
-// import { Call } from "@/types";
-// import { sendGroupMessageApi } from "@/services/group";
+// import { ReceiverParams } from "@/components/Chat/Call";
+// import { sendGroupMessageApi } from "@/services/group"; // ✅ 1. Import thêm createGroupCallApi
 // import GroupInfoModal from "./GroupInfoModal";
+// import { createGroupCallApi } from "@/services/call";
 
 // const TypingIndicator = () => (
 //   <div className="flex items-center space-x-1">
@@ -36,7 +38,11 @@
 //   messagesData,
 //   setMessagesData,
 //   onNewMessageUpdate,
-//   onBack, // 2. Thêm prop onBack nhận từ cha
+//   onBack,
+//   // ✅ 2. Nhận các hàm setter từ MessagesPage để điều khiển cuộc gọi 1-1
+//   setActiveCallParams,
+//   setIsMakingCall,
+//   setActiveCallDetails,
 // }: any) {
 //   const { socket } = useSocket();
 //   const router = useRouter();
@@ -47,12 +53,8 @@
 //   const messageInputRef = useRef<HTMLInputElement>(null);
 //   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 //   const [showGroupInfo, setShowGroupInfo] = useState(false);
-//   // --- CALL STATE ---
-//   const [incomingCall, setIncomingCall] = useState<Call | null>(null);
-//   const [activeCallParams, setActiveCallParams] =
-//     useState<ReceiverParams | null>(null);
-//   const [isMakingCall, setIsMakingCall] = useState(false);
-//   const [activeCallDetails, setActiveCallDetails] = useState<Call | null>(null);
+
+//   // ❌ Đã xóa các state local về Call (incomingCall, activeCallParams...) vì MessagesPage quản lý rồi
 
 //   // --- TYPING ---
 //   const emitTyping = () => {
@@ -199,43 +201,60 @@
 //     }
 //   };
 
-//   // --- CALL HANDLERS ---
-//   const handleStartCall = (callType: "voice" | "video") => {
-//     if (!selectedChat || !currentUser || !conversationId || !socket) {
-//       return;
+//   // ✅ 3. SỬA LOGIC GỌI ĐIỆN (Hỗ trợ cả Group và 1-1)
+//   const handleStartCall = async (callType: "voice" | "video") => {
+//     if (!selectedChat || !currentUser || !socket) return;
+
+//     // --- TRƯỜNG HỢP GỌI NHÓM ---
+//     if (selectedChat.isGroup) {
+//       try {
+//         // 1. Gọi API tạo phòng (để lưu DB)
+//         await createGroupCallApi(
+//           selectedChat.id,
+//           callType === "voice" ? "audio" : "video"
+//         );
+
+//         // 2. Emit socket để báo cho các thành viên khác trong nhóm
+//         socket.emit("createGroupCall", {
+//           group_id: selectedChat.id,
+//           type: callType === "voice" ? "audio" : "video",
+//         });
+
+//         // 3. Tự mình tham gia vào phòng (Dispatch event để MessagesPage bắt được)
+//         window.dispatchEvent(
+//           new CustomEvent("join-group-call-self", {
+//             detail: {
+//               groupId: selectedChat.id,
+//               groupName: selectedChat.name,
+//               isVideo: callType === "video",
+//               initiatorId: currentUser.id,
+//             },
+//           })
+//         );
+//       } catch (error) {
+//         console.error("Không thể tạo cuộc gọi nhóm", error);
+//         alert("Lỗi tạo phòng gọi hoặc server không phản hồi.");
+//       }
 //     }
-//     const params: ReceiverParams = {
-//       receiver_name:
-//         selectedChat.fullName || selectedChat.fullName || "Người dùng",
-//       receiver_avatar: selectedChat.avatar || anhmacdinh.src,
-//       call_type: callType,
-//       conversation_id: conversationId!,
-//       receiver_id: selectedChat.id,
-//     };
-//     setActiveCallParams(params);
-//     setIsMakingCall(true);
-//     setActiveCallDetails(null);
+//     // --- TRƯỜNG HỢP GỌI 1-1 ---
+//     else {
+//       if (!conversationId) return;
+//       const params: ReceiverParams = {
+//         receiver_name:
+//           selectedChat.name || selectedChat.fullName || "Người dùng",
+//         receiver_avatar: selectedChat.avatar || anhmacdinh.src,
+//         call_type: callType,
+//         conversation_id: conversationId!,
+//         receiver_id: selectedChat.id,
+//       };
+//       // Gọi prop setter của cha (MessagesPage)
+//       setActiveCallParams(params);
+//       setIsMakingCall(true);
+//       setActiveCallDetails(null);
+//     }
 //   };
 
-//   const handleIncomingCall = (callData: Call) => {
-//     setIncomingCall(callData);
-//   };
-
-//   const handleOnHangUp = useCallback(() => {
-//     setActiveCallParams(null);
-//     setIsMakingCall(false);
-//     setActiveCallDetails(null);
-//   }, []);
-
-//   useEffect(() => {
-//     if (!socket) return;
-//     socket.on("outgoingCall", handleIncomingCall);
-//     socket.on("callEndedByPeer", handleOnHangUp);
-//     return () => {
-//       socket.off("outgoingCall", handleIncomingCall);
-//       socket.off("callEndedByPeer", handleOnHangUp);
-//     };
-//   }, [socket, handleIncomingCall, handleOnHangUp]);
+//   // ❌ Đã xóa useEffect outgoingCall/callEndedByPeer (MessagesPage lo)
 
 //   if (!selectedChat)
 //     return (
@@ -251,14 +270,13 @@
 //       {/* Header */}
 //       <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
 //         <div className="flex items-center space-x-3">
-//           {/* 3. NÚT BACK (Chỉ hiện trên mobile) */}
+//           {/* NÚT BACK */}
 //           <button
 //             onClick={onBack}
 //             className="lg:hidden p-2 -ml-2 mr-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-600 dark:text-gray-300"
 //           >
 //             <ArrowLeft size={22} />
 //           </button>
-//           {/* --------------------------------- */}
 
 //           <div className="relative">
 //             <Image
@@ -306,11 +324,11 @@
 //             <Video className="w-4 h-4 text-gray-600 dark:text-gray-300" />
 //           </button>
 //           <button
-//            onClick={() => setShowGroupInfo(true)} // <--- THÊM SỰ KIỆN NÀY
-//            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
-//          >
-//            <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-//          </button>
+//             onClick={() => setShowGroupInfo(true)}
+//             className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
+//           >
+//             <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+//           </button>
 //         </div>
 //       </div>
 
@@ -381,17 +399,7 @@
 //         )}
 //       </div>
 
-//       {activeCallParams && currentUser && (
-//         <div className="absolute inset-0 z-40 bg-black/50">
-//           <CallPage
-//             currentUser={currentUser}
-//             receiverParams={activeCallParams}
-//             isMakingCall={isMakingCall}
-//             initialCallDetails={activeCallDetails}
-//             onHangUp={handleOnHangUp}
-//           />
-//         </div>
-//       )}
+//       {/* ❌ Đã xóa phần render CallPage tại đây, vì MessagesPage đã render rồi */}
 
 //       {showGroupInfo && selectedChat && (
 //         <GroupInfoModal
@@ -404,9 +412,6 @@
 //     </div>
 //   );
 // }
-
-
-
 
 "use client";
 import Image from "next/image";
@@ -426,7 +431,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSocket } from "@/components/SocketContext";
 import { ReceiverParams } from "@/components/Chat/Call";
-import { sendGroupMessageApi } from "@/services/group"; // ✅ 1. Import thêm createGroupCallApi
+import { sendGroupMessageApi } from "@/services/group"; 
 import GroupInfoModal from "./GroupInfoModal";
 import { createGroupCallApi } from "@/services/call";
 
@@ -460,8 +465,6 @@ export default function ChatWindow({
   const messageInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-
-  // ❌ Đã xóa các state local về Call (incomingCall, activeCallParams...) vì MessagesPage quản lý rồi
 
   // --- TYPING ---
   const emitTyping = () => {
@@ -614,6 +617,11 @@ export default function ChatWindow({
 
     // --- TRƯỜNG HỢP GỌI NHÓM ---
     if (selectedChat.isGroup) {
+      // ⚠️ UPDATE: Tạm thời khóa tính năng và hiện thông báo
+      alert("Chức năng đang phát triển");
+      return; 
+
+      /* --- LOGIC CŨ TẠM THỜI COMMENT LẠI ---
       try {
         // 1. Gọi API tạo phòng (để lưu DB)
         await createGroupCallApi(
@@ -642,6 +650,7 @@ export default function ChatWindow({
         console.error("Không thể tạo cuộc gọi nhóm", error);
         alert("Lỗi tạo phòng gọi hoặc server không phản hồi.");
       }
+      */
     }
     // --- TRƯỜNG HỢP GỌI 1-1 ---
     else {
@@ -660,8 +669,6 @@ export default function ChatWindow({
       setActiveCallDetails(null);
     }
   };
-
-  // ❌ Đã xóa useEffect outgoingCall/callEndedByPeer (MessagesPage lo)
 
   if (!selectedChat)
     return (
@@ -806,8 +813,6 @@ export default function ChatWindow({
         )}
       </div>
 
-      {/* ❌ Đã xóa phần render CallPage tại đây, vì MessagesPage đã render rồi */}
-
       {showGroupInfo && selectedChat && (
         <GroupInfoModal
           isOpen={showGroupInfo}
@@ -819,4 +824,3 @@ export default function ChatWindow({
     </div>
   );
 }
-
