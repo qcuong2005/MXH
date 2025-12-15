@@ -11,6 +11,8 @@ import { Group } from './entities/group.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { User } from 'src/user/entities/user.entity';
 import { GroupGateway } from './group.gateway';
+import * as fs from 'fs';
+import * as path from 'path';
 // 👈 BỎ: GroupMemberService và GroupMember (không dùng nữa, thay bằng raw query)
 
 @Injectable()
@@ -204,5 +206,44 @@ export class GroupService {
       group.creator_id = newAdminUserId;
       await manager.save(group);
     });
+  }
+  async updateGroupAvatar(groupId: number, userId: number, newCoverUrl: string): Promise<Group> {
+    const group = await this.groupRepository.findOneBy({ id: groupId });
+
+    if (!group) {
+      throw new NotFoundException('Không tìm thấy nhóm.');
+    }
+    // --- LOGIC XÓA ẢNH CŨ (Quan trọng) ---
+    if (group.cover_image) {
+      try {
+        // Trích xuất tên file từ URL cũ
+        // Ví dụ URL: http://localhost:5000/uploads/groups/covers/abc.jpg
+        // Lấy phần sau cùng: abc.jpg
+        const oldFileName = group.cover_image.split('/').pop();
+        
+        if (oldFileName) {
+          const oldFilePath = path.join(__dirname, '..', '..', 'uploads', 'groups', 'covers', oldFileName);
+          
+          // Kiểm tra file có tồn tại không rồi xóa
+          if (fs.existsSync(oldFilePath)) {
+            fs.unlinkSync(oldFilePath);
+          }
+        }
+      } catch (error) {
+        console.error('Lỗi khi xóa ảnh cũ:', error);
+        // Không throw lỗi ở đây để vẫn tiếp tục cập nhật ảnh mới
+      }
+    }
+
+    // Cập nhật URL mới vào DB
+    group.cover_image = newCoverUrl;
+    
+    // Lưu lại
+    const updatedGroup = await this.groupRepository.save(group);
+
+    // Báo cho các thành viên khác biết (Realtime)
+    this.groupGateway.server.emit('groupUpdated', updatedGroup);
+
+    return updatedGroup;
   }
 }

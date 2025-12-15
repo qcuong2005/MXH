@@ -85,24 +85,35 @@ export const del = async <T>(
 
 
 
-// Thay thế hàm patch cũ của bạn bằng hàm này
+
 export const patch = async <T>(
   path: string,
-  body: any, // 👈 1. Nhận 'body' làm tham số thứ hai
-  options?: FetchOptions // 👈 2. Nhận 'options' làm tham số thứ ba
+  body?: any, // body có thể là object hoặc FormData
+  options: { headers?: Record<string, string> } = {} // options để thêm headers như Authorization
 ): Promise<T> => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const isFormData = body instanceof FormData;
+
   const response = await fetch(`${API_DOMAIN}${path}`, {
     method: "PATCH",
     headers: {
-      // Headers mặc định
       Accept: "application/json",
-      "Content-Type": "application/json",
-      // 3. (FIX) Gộp các headers từ 'options'
-      ...(options?.headers), // Dòng này sẽ thêm 'Authorization' của bạn
+      // QUAN TRỌNG: Chỉ set Content-Type nếu KHÔNG phải FormData
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      // Thêm Authorization từ localStorage (nếu có)
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // Thêm headers custom từ options (nếu người dùng truyền)
+      ...(options.headers || {}),
     },
-    // 4. (FIX) Stringify 'body' (tham số thứ 2)
-    body: JSON.stringify(body),
+    body: isFormData ? body : body ? JSON.stringify(body) : undefined,
   });
+
+  // Xử lý 401 giống các hàm khác
+  if (response.status === 401) {
+    throw new Error("Bạn cần đăng nhập để thực hiện hành động này.");
+  }
+
   return handleResponse<T>(response);
 };
 export const put = async <T>(

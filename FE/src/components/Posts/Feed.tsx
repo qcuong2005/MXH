@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
@@ -25,9 +24,6 @@ import { followUser, getMyFollowing, unfollowUser } from "@/services/follows";
 import GoldenTick from "../GoldenTick";
 import { useSocket } from "../SocketContext";
 import { getMySavedPosts, toggleSavePost } from "@/services/save";
-
-// --- QUAN TRỌNG: Import hàm API lưu bài viết ---
-
 
 // --- COMPONENT HIỂN THỊ NỘI DUNG RÚT GỌN ---
 const ExpandableText = ({ content }: { content: string }) => {
@@ -117,15 +113,13 @@ export default function Feed() {
   const observer = useRef<IntersectionObserver | null>(null);
   const limit = 5;
 
-  // Trong Feed.tsx -> useEffect
-
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userId = Number(localStorage.getItem("userId") || 0);
     setCurrentUserId(userId);
 
     if (token) {
-      // 1. Lấy danh sách following (Giữ nguyên)
+      // 1. Lấy danh sách following
       getMyFollowing(token)
         .then((response: any) => {
           const list = Array.isArray(response) ? response : response?.data || [];
@@ -139,14 +133,10 @@ export default function Feed() {
         })
         .catch((err) => console.error("❌ Lỗi lấy danh sách follow:", err));
         
-      // 2. --- KHẮC PHỤC LỖI MẤT TRẠNG THÁI LƯU ---
-      // Gọi API lấy danh sách bài đã lưu để cập nhật state savedIds
+      // 2. Lấy danh sách bài đã lưu
       getMySavedPosts(token)
         .then((res: any) => {
-             // Kiểm tra dữ liệu trả về, đảm bảo là mảng
              const savedList = Array.isArray(res) ? res : (res.data || []);
-             
-             // Lọc ra danh sách ID và đưa vào Set
              const ids = new Set<number>(savedList.map((post: Post) => post.id));
              setSavedIds(ids);
         })
@@ -306,7 +296,6 @@ export default function Feed() {
     setCommentCounts((prev) => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
   };
 
-  // --- HÀM XỬ LÝ LƯU BÀI VIẾT ĐÃ FIX ---
   const handleSavePost = async (post: Post) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -316,7 +305,6 @@ export default function Feed() {
 
     const isSaved = savedIds.has(post.id);
 
-    // 1. Optimistic Update (Cập nhật UI ngay lập tức)
     setSavedIds((prev) => {
         const next = new Set(prev);
         if (isSaved) next.delete(post.id);
@@ -325,10 +313,7 @@ export default function Feed() {
     });
 
     try {
-        // 2. Gọi API chuẩn xác: /saves/toggle
         const result = await toggleSavePost(token, post.id);
-
-        // 3. (Tuỳ chọn) Đồng bộ lại state nếu kết quả server trả về khác UI
         if (result && typeof result.saved === 'boolean') {
              setSavedIds((prev) => {
                 const next = new Set(prev);
@@ -339,7 +324,6 @@ export default function Feed() {
         }
     } catch (error) {
         console.error("Lỗi lưu bài viết:", error);
-        // 4. Nếu lỗi, hoàn tác UI
         setSavedIds((prev) => {
             const next = new Set(prev);
             if (isSaved) next.add(post.id);
@@ -364,7 +348,6 @@ export default function Feed() {
             const isFollowing = authorId ? followingIds.has(authorId) : false;
             const isMe = authorId === currentUserId;
             
-            // Kiểm tra xem bài viết đã lưu chưa
             const isSaved = savedIds.has(p.id);
 
             return (
@@ -419,21 +402,31 @@ export default function Feed() {
                 </h3>
                 <ExpandableText content={p.content} />
 
-                {/* MEDIA RENDERING */}
+                {/* MEDIA RENDERING - ĐÃ CHỈNH SỬA FULL VIEW */}
                 {p.image_url && p.image_url.trim() !== "" && (
-                  <img
-                    src={p.image_url}
-                    alt="post"
-                    className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700 cursor-pointer hover:opacity-95 transition-opacity"
-                    onError={(e) => { e.currentTarget.style.display = "none"; }}
-                    onClick={() => setSelectedImage(p.image_url || "")}
-                  />
+                  <div className="w-full mb-4 overflow-hidden rounded-xl border dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-center items-center">
+                    <img
+                      src={p.image_url}
+                      alt="post"
+                      // Thay đổi: h-auto (tự động cao), object-contain (hiển thị hết ảnh), max-h-[80vh] (giới hạn tránh quá dài)
+                      className="w-full h-auto max-h-[80vh] object-contain cursor-pointer hover:opacity-95 transition-opacity"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      onClick={() => setSelectedImage(p.image_url || "")}
+                    />
+                  </div>
                 )}
+                
                 {p.video_url && p.video_url.trim() !== "" && (
-                    <video controls className="w-full rounded-xl mb-4 border max-h-[400px] sm:max-h-[500px] object-cover dark:border-gray-700">
-                        <source src={p.video_url} type="video/mp4" />
-                    </video>
+                    <div className="w-full mb-4 overflow-hidden rounded-xl border dark:border-gray-700 bg-black">
+                        <video 
+                            controls 
+                            className="w-full h-auto max-h-[80vh]"
+                        >
+                            <source src={p.video_url} type="video/mp4" />
+                        </video>
+                    </div>
                 )}
+
                 {p.audio_url && p.audio_url.trim() !== "" && (
                     <div className="mb-4 rounded-xl border p-3 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
                         <audio controls className="w-full"><source src={p.audio_url} /></audio>
