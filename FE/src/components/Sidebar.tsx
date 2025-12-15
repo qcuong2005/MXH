@@ -21,17 +21,17 @@ import anhmacdinh from "../../image/anhmacdinh.jpg";
 
 
 const navigation = [
-  { name: "Home", icon: Home, href: "/", notifications: 0 },
-  { name: "Profile", icon: UserCircle, href: "/profile", notifications: 0 },
+  { name: "Home", icon: Home, href: "/", },
+  { name: "Profile", icon: UserCircle, href: "/profile",  },
   {
     name: "Messages",
     icon: MessageSquare,
     href: "/messages",
-    notifications: 3,
+  
   },
-  { name: "Friends", icon: Users, href: "/friends", notifications: 2 },
-  { name: "Saved", icon: Bookmark, href: "/saved", notifications: 0 },
-  { name: "Settings", icon: Settings, href: "/settings", notifications: 0 },
+  { name: "Friends", icon: Users, href: "/friends", },
+  { name: "Saved", icon: Bookmark, href: "/saved",},
+  { name: "Settings", icon: Settings, href: "/settings", },
 ];
 
 export default function Sidebar() {
@@ -109,9 +109,9 @@ export default function Sidebar() {
                       <Icon className="w-5 h-5" />
                       <span className="font-medium">{item.name}</span>
                     </div>
-                    {item.notifications > 0 && (
+                    {(item as any).notifications > 0 && (
                       <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                        {item.notifications}
+                        {(item as any).notifications}
                       </span>
                     )}
                   </Link>
@@ -209,9 +209,9 @@ export default function Sidebar() {
                       <Icon className="w-5 h-5" />
                       <span>{item.name}</span>
                     </div>
-                    {item.notifications > 0 && (
+                    {(item as any).notifications > 0 && (
                       <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2.5 py-1 min-w-6">
-                        {item.notifications}
+                        {(item as any).notifications}
                       </span>
                     )}
                   </Link>

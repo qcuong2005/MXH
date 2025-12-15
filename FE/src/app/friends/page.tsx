@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-// import { io, Socket } from "socket.io-client"; // <-- 1. KHÔNG CẦN TẠO SOCKET MỚI
-// <-- 2. IMPORT HOOK ĐỂ LẤY SOCKET
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { Search } from "lucide-react";
@@ -34,6 +32,7 @@ export default function FriendsPage() {
     setSearchQuery(e.target.value);
   };
 
+  // Logic lọc danh sách theo từ khóa tìm kiếm
   const filteredFriends = friends.filter((friend) =>
     friend.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -44,7 +43,6 @@ export default function FriendsPage() {
     suggestion.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Hàm fetch data (đã đúng, giữ nguyên)
   const fetchAllFriendsData = useCallback(
     async (authToken: string, currentId?: number) => {
       if (!authToken) return;
@@ -78,7 +76,7 @@ export default function FriendsPage() {
 
         const mappedSuggestions = filteredUsers.map((u: any) => ({
           id: u.id,
-          name: u.fullName ?? u.name ?? u.username ?? "Unknown User",
+          name: u.fullName ?? u.name ?? u.username ?? "Người dùng", // Đã dịch
           username: u.username ? `@${u.username}` : "",
           avatar: u.avatar ? u.avatar : anhmacdinh.src,
           mutualFriends: 0,
@@ -94,7 +92,7 @@ export default function FriendsPage() {
   );
 
   const handleAcceptRequest = async (requesterId: number) => {
-    if (!token || !socket) return; // Luôn kiểm tra socket toàn cục
+    if (!token || !socket) return;
     socket.emit("friends:accept", { requesterId: requesterId });
     setFriendRequests((prev) =>
       prev.filter((req: any) => req.id !== requesterId)
@@ -102,22 +100,18 @@ export default function FriendsPage() {
   };
 
   const handleRejectRequest = async (requesterId: number) => {
-    if (!token || !socket) return; // Luôn kiểm tra socket toàn cục
+    if (!token || !socket) return;
     socket.emit("friends:reject", { requesterId: requesterId });
     setFriendRequests((prev) =>
       prev.filter((req: any) => req.id !== requesterId)
     );
   };
 
-  // useEffect (Auth) - (Đã đúng, giữ nguyên)
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUserId = localStorage.getItem("userId");
 
     if (!storedToken || !storedUserId) {
-      console.error(
-        "Auth Effect: Token hoặc UserId không có. Đang chuyển hướng..."
-      );
       router.push("/login");
       return;
     }
@@ -128,20 +122,17 @@ export default function FriendsPage() {
     if (!isNaN(uid)) {
       setCurrentUserId(uid);
     } else {
-      console.error("Auth Effect: UserId không phải là số.");
       router.push("/login");
     }
   }, [router]);
+
   useEffect(() => {
-    // Chỉ chạy khi socket toàn cục, token, và user ID đã sẵn sàng
     if (!socket || !token || !currentUserId) {
       return;
     }
 
-    // 1. Tải data lần đầu khi trang được load (và socket đã sẵn sàng)
     fetchAllFriendsData(token, currentUserId);
 
-    // 2. Lắng nghe các sự kiện socket
     const handleRequestReceived = (data: any) => {
       console.log("FriendsPage: Socket event: friends:request:received", data);
       fetchAllFriendsData(token, currentUserId);
@@ -168,8 +159,6 @@ export default function FriendsPage() {
     socket.on("friends:removed", handleFriendRemoved);
     socket.on("friends:error", handleSocketError);
 
-    // Cleanup: Gỡ bỏ listener khi component unmount
-    // QUAN TRỌNG: Không ngắt kết nối socket ở đây
     return () => {
       socket.off("friends:request:received", handleRequestReceived);
       socket.off("friends:accepted", handleRequestAccepted);
@@ -177,9 +166,8 @@ export default function FriendsPage() {
       socket.off("friends:removed", handleFriendRemoved);
       socket.off("friends:error", handleSocketError);
     };
-  }, [socket, token, currentUserId, fetchAllFriendsData]); // Dependencies này đã đúng
+  }, [socket, token, currentUserId, fetchAllFriendsData]);
 
-  // Return JSX (Giữ nguyên)
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar />
@@ -187,10 +175,15 @@ export default function FriendsPage() {
         <Header />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto p-4">
-            {/* ... (Toàn bộ UI của bạn được giữ nguyên) ... */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Friends</h1>
-              <p className="text-gray-600 dark:text-gray-400">Connect with people you know</p>
+              {/* Đã dịch: Tiêu đề */}
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                Bạn bè
+              </h1>
+              {/* Đã dịch: Mô tả */}
+              <p className="text-gray-600 dark:text-gray-400">
+                Kết nối với những người bạn biết
+              </p>
             </div>
             
             <div className="mb-6">
@@ -198,7 +191,8 @@ export default function FriendsPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search friends..."
+                  // Đã dịch: Placeholder
+                  placeholder="Tìm kiếm bạn bè..."
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   value={searchQuery}
                   onChange={handleSearchChange}
@@ -209,16 +203,17 @@ export default function FriendsPage() {
             <div className="mb-6">
               <div className="border-b border-gray-200 dark:border-gray-800">
                 <nav className="-mb-px flex space-x-8">
+                  {/* Đã dịch: Các tab */}
                   {[
-                    { id: "all", label: "All Friends", count: filteredFriends.length },
-                    { id: "requests", label: "Requests", count: filteredRequests.length },
-                    { id: "suggestions", label: "Suggestions", count: filteredSuggestions.length },
+                    { id: "all", label: "Tất cả bạn bè", count: filteredFriends.length },
+                    { id: "requests", label: "Lời mời kết bạn", count: filteredRequests.length },
+                    { id: "suggestions", label: "Gợi ý", count: filteredSuggestions.length },
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === tab.id
+                        activeTab === tab.id  
                           ? "border-blue-500 text-blue-600 dark:text-blue-400"
                           : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-700"
                       }`}
@@ -239,7 +234,6 @@ export default function FriendsPage() {
               />
             )}
             
-            {/* Sửa lại: Dùng 'socket' từ context, 'token' chỉ để kiểm tra */}
             {activeTab === "suggestions" && socket && token && (
               <SuggestedFriends
                 suggestedFriends={filteredSuggestions}

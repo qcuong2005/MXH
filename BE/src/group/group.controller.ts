@@ -12,6 +12,7 @@ import {
   UseInterceptors, // 👈 3. Thêm các mục cho upload
   UploadedFiles,
   BadRequestException,
+  UploadedFile,
 } from '@nestjs/common';
 import { GroupService } from './group.service';
 import { CreateGroupDto } from './dto/create-group.dto';
@@ -20,7 +21,7 @@ import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { TransferAdminDto } from './dto/transfer-admin.dto';
 import { Request } from 'express'; // 👈 4. Thêm Request
 import { User } from 'src/user/entities/user.entity'; // 👈 5. Thêm User
-import { AnyFilesInterceptor } from '@nestjs/platform-express'; // 👈 6. Thêm Interceptor
+import { AnyFilesInterceptor, FileInterceptor } from '@nestjs/platform-express'; // 👈 6. Thêm Interceptor
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
@@ -144,5 +145,39 @@ export class GroupController {
       statusCode: 200,
       message: `Nhóm ${groupId} đã được giải tán.`,
     };
+  }
+  @Patch(':id/avatar')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @UseInterceptors(
+    FileInterceptor('avatar', { // Chỉ nhận 1 file có key là 'avatar'
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const path = join(__dirname, '..', '..', 'uploads', 'groups', 'covers');
+          fs.mkdirSync(path, { recursive: true });
+          cb(null, path);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, `group-cover-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB
+    }),
+  )
+  async updateGroupAvatar(
+    @Param('id', ParseIntPipe) groupId: number,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Vui lòng tải lên một tệp ảnh.');
+    }
+
+    const user = req.user as User;
+    // Tạo URL ảnh mới
+    const newCoverUrl = `http://localhost:5000/uploads/groups/covers/${file.filename}`;
+
+    return this.groupService.updateGroupAvatar(groupId, user.id, newCoverUrl);
   }
 }

@@ -191,3 +191,18 @@ export async function getGroupMessagesApi(
     },
   });
 }
+// Trong file chứa API (ví dụ services/group.ts)
+
+export async function updateGroupAvatarApi(
+  token: string,
+  groupId: number,
+  file: File
+): Promise<any> {
+  const formData = new FormData();
+  formData.append('avatar', file);
+  return await patch(`/groups/${groupId}/avatar`, formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
