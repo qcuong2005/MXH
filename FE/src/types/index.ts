@@ -1,3 +1,4 @@
+import { ReportReason, ReportStatus } from "@/services/report"
 
 export interface User {
   id: string
@@ -208,4 +209,21 @@ export interface PrivacySettingsData {
   profile_visibility?: string; // 'public' | 'friends' | 'private'
   is_email_public?: boolean;
   show_online_status?: boolean;
+}
+
+export interface Report {
+  id: number;
+  reporterId: number;
+  postId: number;
+  reasons: ReportReason[];
+  description?: string;
+  status: ReportStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateReportPayload {
+  postId: number;
+  reasons: ReportReason[];
+  description?: string;
 }
