@@ -59,3 +59,45 @@ export async function getAllComments(): Promise<Comment[]> {
     headers: getAuthHeaders(),
   });
 }
+
+
+export async function getReportDetailApi(
+  token: string,
+  reportId: number
+): Promise<Report> {
+  return await get<Report>(`/reports/${reportId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+}
+/**
+ * Lấy danh sách tất cả báo cáo (Admin)
+ * Backend: GET /reports
+ */
+export async function getReportsApi(token: string): Promise<Report[]> {
+  return await get<Report[]>("/reports", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+}
+
+/**
+ * Xóa báo cáo (Admin dọn dẹp data)
+ * Backend: DELETE /reports/:id
+ */
+export async function deleteReportApi(
+  token: string,
+  reportId: number
+): Promise<void> {
+  // Nếu utils/request không có hàm del, bạn có thể phải dùng request generic
+  return await del<void>(`/reports/${reportId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+}

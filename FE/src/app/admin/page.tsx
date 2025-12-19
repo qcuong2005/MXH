@@ -174,6 +174,7 @@ import {
 import PostManagement from "@/components/Admin/PostManagement";
 import UserManagement from "@/components/Admin/UserManagement";
 import CommentManagement from "@/components/Admin/CommentManagement";
+import ReportManagement from "@/components/Admin/ReportManagement";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -209,7 +210,7 @@ export default function AdminDashboardPage() {
       case "posts": return <PostManagement />;
       case "users": return <UserManagement />;
       case "comments": return <CommentManagement />;
-      case "reports": return <div className="p-10 text-center text-gray-500">Quản lý Báo cáo (Đang phát triển)</div>;
+      case "reports": return <ReportManagement/>;
       default: return <PostManagement />;
     }
   };
