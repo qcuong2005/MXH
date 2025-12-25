@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+// ... các import giữ nguyên ...
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -28,11 +29,11 @@ export default function FriendsPage() {
   const [suggestedFriends, setSuggestedFriends] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // ... (Giữ nguyên handleSearchChange, filteredFriends...) 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
-  // Logic lọc danh sách theo từ khóa tìm kiếm
   const filteredFriends = friends.filter((friend) =>
     friend.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -43,128 +44,103 @@ export default function FriendsPage() {
     suggestion.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const fetchAllFriendsData = useCallback(
-    async (authToken: string, currentId?: number) => {
+  // ... (Giữ nguyên fetchAllFriendsData)
+  const fetchAllFriendsData = useCallback(async (authToken: string, currentId?: number) => {
+      // ... Code cũ giữ nguyên ...
       if (!authToken) return;
       try {
         const [friendsRes, pendingRes, sentRes, usersRes] = await Promise.all([
           getFriendsApi(authToken),
           getPendingFriendRequestsApi(authToken),
           getSentFriendRequestsApi(authToken),
-          fetchAPI("/users", {
-            headers: { Authorization: `Bearer ${authToken}` },
-          }),
+          fetchAPI("/users", { headers: { Authorization: `Bearer ${authToken}` } }),
         ]);
 
-        const friends = friendsRes || [];
-        const friendRequests = pendingRes || [];
-        const sentRequests = sentRes || [];
+        const friendsList = friendsRes || [];
+        const requestList = pendingRes || [];
+        const sentList = sentRes || [];
         const rawUsers = usersRes || [];
 
-        setFriends(friends);
-        setFriendRequests(friendRequests);
+        setFriends(friendsList);
+        setFriendRequests(requestList);
 
+        // Logic gợi ý bạn bè
         const excludedIds = new Set<number>();
         if (currentId) excludedIds.add(currentId);
-        friends.forEach((friend: any) => excludedIds.add(friend.id));
-        friendRequests.forEach((req: any) => excludedIds.add(req.id));
-        sentRequests.forEach((req: any) => excludedIds.add(req.id));
+        friendsList.forEach((f: any) => excludedIds.add(f.id));
+        requestList.forEach((req: any) => excludedIds.add(req.id));
+        sentList.forEach((req: any) => excludedIds.add(req.id));
 
-        const filteredUsers = rawUsers.filter(
-          (u: any) => !excludedIds.has(u.id)
-        );
-
+        const filteredUsers = rawUsers.filter((u: any) => !excludedIds.has(u.id));
         const mappedSuggestions = filteredUsers.map((u: any) => ({
           id: u.id,
-          name: u.fullName ?? u.name ?? u.username ?? "Người dùng", // Đã dịch
+          name: u.fullName ?? u.name ?? u.username ?? "Người dùng",
           username: u.username ? `@${u.username}` : "",
           avatar: u.avatar ? u.avatar : anhmacdinh.src,
           mutualFriends: 0,
           status: "offline",
         }));
-
         setSuggestedFriends(mappedSuggestions);
       } catch (error) {
         console.error("Failed to fetch friends data:", error);
       }
-    },
-    []
-  );
+  }, []);
 
   const handleAcceptRequest = async (requesterId: number) => {
     if (!token || !socket) return;
     socket.emit("friends:accept", { requesterId: requesterId });
-    setFriendRequests((prev) =>
-      prev.filter((req: any) => req.id !== requesterId)
-    );
+    setFriendRequests((prev) => prev.filter((req: any) => req.id !== requesterId));
   };
 
   const handleRejectRequest = async (requesterId: number) => {
     if (!token || !socket) return;
     socket.emit("friends:reject", { requesterId: requesterId });
-    setFriendRequests((prev) =>
-      prev.filter((req: any) => req.id !== requesterId)
-    );
+    setFriendRequests((prev) => prev.filter((req: any) => req.id !== requesterId));
   };
 
+  // --- HÀM MỚI: Xử lý khi AllFriends xóa thành công ---
+  const handleLocalUnfriend = (removedFriendId: number) => {
+    // 1. Cập nhật ngay lập tức state friends ở đây
+    // Điều này sẽ làm giảm số đếm ở Tab "Tất cả bạn bè" ngay lập tức
+    setFriends((prev) => prev.filter((f) => f.id !== removedFriendId));
+    
+    // 2. (Tùy chọn) Gọi lại fetchAllFriendsData để cập nhật lại danh sách Gợi ý (Suggested)
+    // vì người vừa xóa nên hiện lại ở mục gợi ý.
+    if (token && currentUserId) {
+        // setTimeout nhỏ để backend kịp update DB trước khi fetch lại
+        setTimeout(() => fetchAllFriendsData(token, currentUserId), 500);
+    }
+  };
+
+  // ... (Giữ nguyên các useEffect auth và socket)
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUserId = localStorage.getItem("userId");
-
-    if (!storedToken || !storedUserId) {
-      router.push("/login");
-      return;
-    }
-
+    if (!storedToken || !storedUserId) { router.push("/login"); return; }
     setToken(storedToken);
-
     const uid = parseInt(storedUserId, 10);
-    if (!isNaN(uid)) {
-      setCurrentUserId(uid);
-    } else {
-      router.push("/login");
-    }
+    if (!isNaN(uid)) setCurrentUserId(uid); else router.push("/login");
   }, [router]);
 
   useEffect(() => {
-    if (!socket || !token || !currentUserId) {
-      return;
-    }
-
+    if (!socket || !token || !currentUserId) return;
     fetchAllFriendsData(token, currentUserId);
 
-    const handleRequestReceived = (data: any) => {
-      console.log("FriendsPage: Socket event: friends:request:received", data);
-      fetchAllFriendsData(token, currentUserId);
-    };
-    const handleRequestAccepted = (data: any) => {
-      console.log("FriendsPage: Socket event: friends:accepted", data);
-      fetchAllFriendsData(token, currentUserId);
-    };
-    const handleRequestRejected = (data: any) => {
-      console.log("FriendsPage: Socket event: friends:rejected", data);
-      fetchAllFriendsData(token, currentUserId);
-    };
-    const handleFriendRemoved = (data: any) => {
-      console.log("FriendsPage: Socket event: friends:removed", data);
-      fetchAllFriendsData(token, currentUserId);
-    };
-    const handleSocketError = (error: any) => {
-      console.error("SERVER BÁO LỖI (Socket):", error.message);
-    };
+    const handleRequestReceived = () => fetchAllFriendsData(token, currentUserId);
+    const handleRequestAccepted = () => fetchAllFriendsData(token, currentUserId);
+    const handleRequestRejected = () => fetchAllFriendsData(token, currentUserId);
+    const handleFriendRemoved = () => fetchAllFriendsData(token, currentUserId); // Cái này xử lý khi NGƯỜI KIA xóa mình
 
     socket.on("friends:request:received", handleRequestReceived);
     socket.on("friends:accepted", handleRequestAccepted);
     socket.on("friends:rejected", handleRequestRejected);
     socket.on("friends:removed", handleFriendRemoved);
-    socket.on("friends:error", handleSocketError);
 
     return () => {
       socket.off("friends:request:received", handleRequestReceived);
       socket.off("friends:accepted", handleRequestAccepted);
       socket.off("friends:rejected", handleRequestRejected);
       socket.off("friends:removed", handleFriendRemoved);
-      socket.off("friends:error", handleSocketError);
     };
   }, [socket, token, currentUserId, fetchAllFriendsData]);
 
@@ -176,14 +152,8 @@ export default function FriendsPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto p-4">
             <div className="mb-6">
-              {/* Đã dịch: Tiêu đề */}
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                Bạn bè
-              </h1>
-              {/* Đã dịch: Mô tả */}
-              <p className="text-gray-600 dark:text-gray-400">
-                Kết nối với những người bạn biết
-              </p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Bạn bè</h1>
+              <p className="text-gray-600 dark:text-gray-400">Kết nối với những người bạn biết</p>
             </div>
             
             <div className="mb-6">
@@ -191,7 +161,6 @@ export default function FriendsPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  // Đã dịch: Placeholder
                   placeholder="Tìm kiếm bạn bè..."
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   value={searchQuery}
@@ -203,9 +172,9 @@ export default function FriendsPage() {
             <div className="mb-6">
               <div className="border-b border-gray-200 dark:border-gray-800">
                 <nav className="-mb-px flex space-x-8">
-                  {/* Đã dịch: Các tab */}
                   {[
-                    { id: "all", label: "Tất cả bạn bè", count: filteredFriends.length },
+                    // Số count này sẽ tự động giảm khi state 'friends' thay đổi
+                    { id: "all", label: "Tất cả bạn bè", count: filteredFriends.length }, 
                     { id: "requests", label: "Lời mời kết bạn", count: filteredRequests.length },
                     { id: "suggestions", label: "Gợi ý", count: filteredSuggestions.length },
                   ].map((tab) => (
@@ -225,7 +194,14 @@ export default function FriendsPage() {
               </div>
             </div>
             
-            {activeTab === "all" && <AllFriends friends={filteredFriends} />}
+            {/* TRUYỀN HÀM XỬ LÝ XUỐNG DƯỚI */}
+            {activeTab === "all" && (
+                <AllFriends 
+                    friends={filteredFriends} 
+                    onUnfriend={handleLocalUnfriend} 
+                />
+            )}
+
             {activeTab === "requests" && (
               <FriendRequests
                 friendRequests={filteredRequests}

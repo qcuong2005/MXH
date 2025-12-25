@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { FriendsService } from './friends.service';
-import { CreateFriendDto } from './dto/create-friend.dto';
+import { CreateFriendDto, RemoveFriendDto } from './dto/create-friend.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { User } from 'src/user/entities/user.entity'; // Import User để type-hint cho req.user
 
@@ -80,6 +80,38 @@ async getSentFriendRequests(@Req() req: any) {
     return this.friendsService.sendFriendRequest(dto);
   }
 
+  @Get('count/:userId')
+  @UseGuards(JwtAuthGuard) // Có thể bỏ nếu muốn public ai cũng xem được số bạn bè
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Lấy số lượng bạn bè của một user' })
+  async getFriendCount(
+    @Param('userId', ParseIntPipe) userId: number
+  ) {
+    const count = await this.friendsService.countFriends(userId);
+    return { 
+      userId, 
+      count 
+    };
+  }
+
+  // src/friends/friends.controller.ts
+
+  // ... (các import cũ)
+
+  // 👇 THÊM API NÀY 👇
+  @Get('mutual/:targetId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Lấy số lượng bạn chung với một user khác' })
+  async getMutualFriendCount(
+    @Req() req: any,
+    @Param('targetId', ParseIntPipe) targetId: number
+  ) {
+    const currentUserId = req.user.id;
+    const count = await this.friendsService.countMutualFriends(currentUserId, targetId);
+    return { count };
+  }
+
   // **Route chấp nhận lời mời kết bạn**
   @Post('accept')
   @UseGuards(JwtAuthGuard)
@@ -92,6 +124,23 @@ async getSentFriendRequests(@Req() req: any) {
   ) {
     const user = GetUserFromRequest(req);
     return this.friendsService.acceptFriend(user.id, requesterId);
+  }
+
+  @Post('remove') // Khớp với endpoint "/friends/remove"
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Hủy kết bạn (Unfriend) - Body JSON' })
+  async removeFriendByPost(
+    @Req() req: any,
+    @Body() dto: RemoveFriendDto, // Hứng body { otherUserId }
+  ) {
+    const userId = req.user.id;
+    
+    // Gọi service xóa bạn (Logic service cũ của bạn đã OK)
+    await this.friendsService.removeFriend(userId, dto.otherUserId);
+
+    // Trả về đúng format frontend cần: { message: string }
+    return { message: 'Đã hủy kết bạn thành công.' };
   }
 
   // **Route từ chối lời mời kết bạn**
@@ -121,3 +170,4 @@ async getSentFriendRequests(@Req() req: any) {
     return this.friendsService.removeFriend(user.id, friendId);
   }
 }
+

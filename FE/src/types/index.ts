@@ -115,6 +115,7 @@ export interface Friend {
   userId: number;      // user chủ sở hữu (người gửi request)
   friendId: number;    // user bên kia
   status: FriendStatus;
+  count: number;
 }
 
 
