@@ -87,6 +87,36 @@ export async function removeFriendApi(
   );
 }
 
+export async function getFriendCountApi(
+  token: string,
+  userId: number
+): Promise<Friend> {
+  return await get<Friend>(
+    `/friends/count/${userId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+export async function getMutualFriendCountApi(
+  token: string,
+  targetUserId: number
+): Promise<{ count: number }> {
+  return await get<{ count: number }>(
+    `/friends/mutual/${targetUserId}`, // Endpoint chúng ta vừa tạo
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
 /**
  * Lấy danh sách bạn bè (đã accepted)
  * Backend: GET /friends

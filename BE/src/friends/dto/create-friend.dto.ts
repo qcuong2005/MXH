@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateFriendDto {
   @ApiProperty({
@@ -28,4 +28,10 @@ export class CreateFriendDto {
   @IsOptional()
   @IsString()
   status?: string;
+}
+export class RemoveFriendDto {
+  @ApiProperty({ example: 2, description: 'ID của người muốn hủy kết bạn' })
+  @IsNotEmpty()
+  @IsNumber()
+  otherUserId: number;
 }

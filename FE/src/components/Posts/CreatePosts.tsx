@@ -13,7 +13,7 @@ interface Props {
 
 export default function CreatePosts({ posts, setPosts }: Props) {
   const [content, setContent] = useState("");
-  const [visibility, setVisibility] = useState("friends");
+  const [visibility, setVisibility] = useState("public");
   const [image, setImage] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
