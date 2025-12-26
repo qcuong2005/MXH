@@ -100,7 +100,8 @@ export class GroupMemberService {
         'u.id',
         'u.username',
         'u.fullName',
-        'u.email', // Thêm email hoặc avatar nếu cần
+        'u.email', 
+        'u.avatar'
       ])
       .getMany();
 
