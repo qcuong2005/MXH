@@ -14,16 +14,16 @@ import {
 import ProfileSettings from "@/components/setting/ProfileSettings";
 import AccountSettings from "@/components/setting/AccountSettings";
 import PrivacySettings from "@/components/setting/PrivacySettings";
-import AppearanceSettings from "@/components/setting/AppearanceSettings";
-import GeneralSettings from "@/components/setting/GeneralSettings";
+// import AppearanceSettings from "@/components/setting/AppearanceSettings";
+// import GeneralSettings from "@/components/setting/GeneralSettings";
 
 const tabs = [
   { id: "profile", label: "Hồ sơ", icon: User },
   { id: "account", label: "Tài khoản", icon: Settings },
   { id: "privacy", label: "Quyền riêng tư", icon: Shield },
-  { id: "appearance", label: "Giao diện", icon: Palette },
-  { id: "general", label: "Chung", icon: Globe },
-];
+//   { id: "appearance", label: "Giao diện", icon: Palette },
+//   { id: "general", label: "Chung", icon: Globe },
+ ];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -46,8 +46,8 @@ export default function SettingsPage() {
       case "profile": return <ProfileSettings />;
       case "account": return <AccountSettings />;
       case "privacy": return <PrivacySettings />;
-      case "appearance": return <AppearanceSettings />;
-      case "general": return <GeneralSettings />;
+      // case "appearance": return <AppearanceSettings />;
+      // case "general": return <GeneralSettings />;
       default: return <ProfileSettings />;
     }
   };

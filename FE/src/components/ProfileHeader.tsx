@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Check,
   UserPlus,
-  EyeOff, // Import thêm icon này
+  EyeOff,
+  User, // <--- Icon User
 } from "lucide-react";
 import { formatDate, formatNumber } from "@/lib/utisls";
 import { fetchAPI } from "@/lib/api";
@@ -82,6 +83,21 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
 
   const isOwnProfile = effectiveUserId === currentUserId;
 
+  // --- HÀM DỊCH GIỚI TÍNH SANG TIẾNG VIỆT ---
+  const translateGender = (gender: string) => {
+    if (!gender) return null;
+    const g = gender.toLowerCase().trim(); // Chuyển về chữ thường và xóa khoảng trắng thừa
+    
+    // Các trường hợp là Nam
+    if (["male", "boy", "boys", "man", "men", "nam"].includes(g)) return "Nam";
+    
+    // Các trường hợp là Nữ
+    if (["female", "girl", "girls", "woman", "women", "nu", "nữ"].includes(g)) return "Nữ";
+    
+    // Còn lại là Khác
+    return "Khác";
+  };
+
   const getVisibilityIcon = (visibility: string) => {
     switch (visibility) {
       case "private":
@@ -125,7 +141,6 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
         } catch (error) {
           console.error("Lỗi lấy số liệu follow:", error);
         }
-
         // --- CHECK FOLLOW STATUS ---
         const token = localStorage.getItem("token");
         const myId = Number(localStorage.getItem("userId"));
@@ -155,8 +170,6 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
         }
 
         // 3. Lấy danh sách bài viết
-        // LƯU Ý: Nếu backend bạn tốt, API này sẽ tự trả về rỗng nếu không có quyền.
-        // Nhưng ở đây ta cứ lấy về và filter ở Frontend theo yêu cầu của bạn.
         const res = await fetchAPI(`/post/user/${effectiveUserId}`);
         const userPosts: Post[] = Array.isArray(res) ? res : res.data || [];
         setPosts(userPosts);
@@ -244,7 +257,9 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
     }
   };
 
-  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const formData = new FormData();
@@ -262,7 +277,10 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
   };
   const handleEditAvatar = () => fileInputRef.current?.click();
   const handleShare = async (post: Post) => {
-    setShareCounts((prev) => ({ ...prev, [post.id]: (prev[post.id] || 0) + 1 }));
+    setShareCounts((prev) => ({
+      ...prev,
+      [post.id]: (prev[post.id] || 0) + 1,
+    }));
     if (navigator.share) {
       try {
         await navigator.share({
@@ -278,10 +296,15 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
     }
   };
   const handleCommentAdded = (postId: number) => {
-    setCommentCounts((prev) => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
+    setCommentCounts((prev) => ({
+      ...prev,
+      [postId]: (prev[postId] || 0) + 1,
+    }));
   };
   const handleDeletePost = async (postId: number) => {
-    const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa bài viết này không?");
+    const confirmDelete = window.confirm(
+      "Bạn có chắc chắn muốn xóa bài viết này không?"
+    );
     if (!confirmDelete) return;
     try {
       const token = localStorage.getItem("token");
@@ -296,7 +319,10 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
       alert("Xóa bài viết thất bại.");
     }
   };
-  const handleChangeVisibility = async (postId: number, newVisibility: string) => {
+  const handleChangeVisibility = async (
+    postId: number,
+    newVisibility: string
+  ) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
@@ -324,7 +350,10 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
     try {
       const conversation = await ensureConversation(token, effectiveUserId);
       if (conversation?.id) {
-        localStorage.setItem("selectedConversationId", conversation.id.toString());
+        localStorage.setItem(
+          "selectedConversationId",
+          conversation.id.toString()
+        );
         localStorage.setItem("selectedFriendId", effectiveUserId.toString());
         router.push("/messages");
       } else {
@@ -350,37 +379,33 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
     );
 
   // ==========================================
-  // LOGIC KIỂM TRA QUYỀN RIÊNG TƯ (QUAN TRỌNG)
+  // LOGIC KIỂM TRA QUYỀN RIÊNG TƯ
   // ==========================================
-  const profileVisibility = user.profile_visibility || 'public'; // Mặc định là public nếu null
+  const profileVisibility = user.profile_visibility || "public";
 
   let canViewContent = false;
 
   if (isOwnProfile) {
-    // 1. Là chủ tài khoản -> Luôn được xem
     canViewContent = true;
-  } else if (profileVisibility === 'public') {
-    // 2. Chế độ công khai -> Ai cũng xem được
+  } else if (profileVisibility === "public") {
     canViewContent = true;
-  } else if (profileVisibility === 'friends') {
-    // 3. Chế độ bạn bè -> Phải follow mới xem được
+  } else if (profileVisibility === "friends") {
     if (isFollowing) {
       canViewContent = true;
     }
-  } else if (profileVisibility === 'private') {
-    // 4. Chế độ riêng tư -> Không ai xem được (trừ chủ - đã check ở trên)
+  } else if (profileVisibility === "private") {
     canViewContent = false;
   }
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg mb-6">
-      {/* ... Phần Header (Cover, Avatar, Info) giữ nguyên ... */}
+      {/* ... Phần Header (Cover, Avatar, Info) ... */}
       <div className="h-48 md:h-64 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-t-lg"></div>
 
       <div className="p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between">
-            {/* ... Avatar & Info ... */}
-            <div className="flex flex-col md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-6">
+          {/* ... Avatar & Info ... */}
+          <div className="flex flex-col md:flex-row md:items-end space-y-4 md:space-y-0 md:space-x-6">
             <div className="flex items-end space-x-4">
               <div className="relative">
                 <img
@@ -389,7 +414,12 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                   className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white -mt-12 md:-mt-16 object-cover"
                 />
                 {isOwnProfile && (
-                  <button onClick={handleEditAvatar} className="absolute bottom-0 right-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600">📷</button>
+                  <button
+                    onClick={handleEditAvatar}
+                    className="absolute bottom-0 right-0 w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shadow-md hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  >
+                    📷
+                  </button>
                 )}
               </div>
               <div>
@@ -397,15 +427,16 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                   {user.fullName || "Ẩn danh"}
                   {(user.id === 1 || user.is_verified) && <GoldenTick />}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400">@{user.username}</p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {user.email}
+                </p>
               </div>
             </div>
           </div>
 
           {!isOwnProfile && (
             <div className="flex space-x-3 mt-4 md:mt-0">
-               {/* Nút Follow và Message giữ nguyên */}
-               <button
+              <button
                 onClick={handleFollowToggle}
                 disabled={followLoading}
                 className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
@@ -417,41 +448,87 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                 {followLoading ? (
                   <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
                 ) : isFollowing ? (
-                  <><Check size={18} /> Đang theo dõi</>
+                  <>
+                    <Check size={18} /> Đang theo dõi
+                  </>
                 ) : (
-                  <><UserPlus size={18} /> Theo dõi</>
+                  <>
+                    <UserPlus size={18} /> Theo dõi
+                  </>
                 )}
               </button>
-              <button onClick={handleSendMessage} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 flex items-center gap-2">
+              <button
+                onClick={handleSendMessage}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 flex items-center gap-2"
+              >
                 <MessageCircle size={18} /> Nhắn tin
               </button>
             </div>
           )}
         </div>
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarChange}
+          className="hidden"
+        />
 
-        {/* ... Info User (Bio, Location) ... */}
+        {/* ... Info User (Bio, Gender, Location, Date) ... */}
         <div className="mt-6">
-          <p className="text-gray-900 dark:text-gray-100 mb-4">{user.bio || "Chưa có mô tả."}</p>
+          <p className="text-gray-900 dark:text-gray-100 mb-4">
+            {user.bio || "Chưa có mô tả."}
+          </p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-400">
-             {user.location && <div className="flex items-center space-x-1"><MapPin className="w-4 h-4" /><span>{user.location}</span></div>}
-             {user.createdAt && <div className="flex items-center space-x-1"><Calendar className="w-4 h-4" /><span>Tham gia {formatDate(user.createdAt)}</span></div>}
+            {/* --- HIỂN THỊ GIỚI TÍNH TIẾNG VIỆT --- */}
+            {user.gender && (
+              <div className="flex items-center space-x-1">
+                <User className="w-4 h-4" />
+                <span>{translateGender(user.gender)}</span>
+              </div>
+            )}
+            {/* ------------------------------------- */}
+
+            {user.location && (
+              <div className="flex items-center space-x-1">
+                <MapPin className="w-4 h-4" />
+                <span>{user.location}</span>
+              </div>
+            )}
+            {user.createdAt && (
+              <div className="flex items-center space-x-1">
+                <Calendar className="w-4 h-4" />
+                <span>Tham gia {formatDate(user.createdAt)}</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Follow Stats */}
         <div className="flex space-x-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center">
-            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(posts.length)}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Bài viết</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {formatNumber(posts.length)}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Bài viết
+            </div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(followStats.followers)}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Người theo dõi</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {formatNumber(followStats.followers)}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Người theo dõi
+            </div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatNumber(followStats.following)}</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Đang theo dõi</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              {formatNumber(followStats.following)}
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Đang theo dõi
+            </div>
           </div>
         </div>
       </div>
@@ -464,20 +541,24 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
 
         {/* --- XỬ LÝ HIỂN THỊ DỰA VÀO QUYỀN --- */}
         {!canViewContent ? (
-           // GIAO DIỆN BỊ KHÓA
-           <div className="flex flex-col items-center justify-center py-10 text-center bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
-             <div className="bg-gray-200 dark:bg-gray-800 p-4 rounded-full mb-4">
-                {profileVisibility === 'private' ? <Lock className="w-8 h-8 text-gray-500" /> : <Users className="w-8 h-8 text-gray-500" />}
-             </div>
-             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-               Tài khoản này là riêng tư
-             </h3>
-             <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm">
-               {profileVisibility === 'friends' 
-                 ? "Hãy theo dõi người dùng này để xem bài viết và nội dung của họ." 
-                 : "Chủ sở hữu đã giới hạn người có thể xem nội dung này."}
-             </p>
-           </div>
+          // GIAO DIỆN BỊ KHÓA
+          <div className="flex flex-col items-center justify-center py-10 text-center bg-gray-5 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="bg-gray-200 dark:bg-gray-800 p-4 rounded-full mb-4">
+              {profileVisibility === "private" ? (
+                <Lock className="w-8 h-8 text-gray-500" />
+              ) : (
+                <Users className="w-8 h-8 text-gray-500" />
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              Tài khoản này là riêng tư
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm">
+              {profileVisibility === "friends"
+                ? "Hãy theo dõi người dùng này để xem bài viết và nội dung của họ."
+                : "Chủ sở hữu đã giới hạn người có thể xem nội dung này."}
+            </p>
+          </div>
         ) : (
           // GIAO DIỆN BÌNH THƯỜNG (HIỂN THỊ LIST BÀI VIẾT)
           <>
@@ -492,21 +573,34 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                     key={p.id}
                     className="border rounded-2xl p-4 sm:p-6 shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-all"
                   >
-                    {/* ... (Phần hiển thị bài viết giữ nguyên như code cũ) ... */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
-                        <img src={user.avatar || anhmacdinh.src} alt="avatar" className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border" />
+                        <img
+                          src={user.avatar || anhmacdinh.src}
+                          alt="avatar"
+                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover mr-3 border"
+                        />
                         <div>
-                          <h4 className="font-semibold text-gray-800 dark:text-gray-100">{user.username}</h4>
+                          <h4 className="font-semibold text-gray-800 dark:text-gray-100">
+                            {user.fullName}
+                          </h4>
                           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <span>{new Date(p.createdAt).toLocaleString()}</span>
                             <span>•</span>
                             <div className="relative group flex items-center gap-1 cursor-pointer bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full hover:bg-gray-200 transition-colors">
                               {getVisibilityIcon(p.visibility)}
-                              <span className="hidden sm:inline">{getVisibilityText(p.visibility)}</span>
+                              <span className="hidden sm:inline">
+                                {getVisibilityText(p.visibility)}
+                              </span>
                               {isOwnProfile && <ChevronDown size={12} />}
                               {isOwnProfile && (
-                                <select value={p.visibility} onChange={(e) => handleChangeVisibility(p.id, e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                <select
+                                  value={p.visibility}
+                                  onChange={(e) =>
+                                    handleChangeVisibility(p.id, e.target.value)
+                                  }
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                >
                                   <option value="public">Công khai</option>
                                   <option value="friends">Bạn bè</option>
                                   <option value="private">Chỉ mình tôi</option>
@@ -517,30 +611,74 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                         </div>
                       </div>
                       {isOwnProfile && (
-                        <button onClick={() => handleDeletePost(p.id)} className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <button
+                          onClick={() => handleDeletePost(p.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
                           <Trash2 size={18} />
                         </button>
                       )}
                     </div>
 
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 break-words">{p.title}</h3>
-                    <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-line text-sm sm:text-base">{p.content}</p>
-                    {p.image_url && <img src={p.image_url} alt="post" className="w-full rounded-xl mb-4 border dark:border-gray-700 max-h-[400px] sm:max-h-[500px] object-cover" />}
-                    {p.video_url && <video controls className="w-full rounded-xl mb-4 border dark:border-gray-700 max-h-[400px] sm:max-h-[500px] object-cover"><source src={p.video_url} type="video/mp4" /></video>}
-                    {p.audio_url && <div className="mb-4 rounded-xl border p-3 bg-gray-50 dark:bg-gray-900 dark:border-gray-700"><audio controls className="w-full"><source src={p.audio_url} /></audio><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Bản ghi âm</p></div>}
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 break-words">
+                      {p.title}
+                    </h3>
+                    <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-line text-sm sm:text-base">
+                      {p.content}
+                    </p>
+                    {p.image_url && (
+                      <img
+                        src={p.image_url}
+                        alt="post"
+                        className="w-full rounded-xl mb-4 border dark:border-gray-700 max-h-[400px] sm:max-h-[500px] object-cover"
+                      />
+                    )}
+                    {p.video_url && (
+                      <video
+                        controls
+                        className="w-full rounded-xl mb-4 border dark:border-gray-700 max-h-[400px] sm:max-h-[500px] object-cover"
+                      >
+                        <source src={p.video_url} type="video/mp4" />
+                      </video>
+                    )}
+                    {p.audio_url && (
+                      <div className="mb-4 rounded-xl border p-3 bg-gray-50 dark:bg-gray-900 dark:border-gray-700">
+                        <audio controls className="w-full">
+                          <source src={p.audio_url} />
+                        </audio>
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Bản ghi âm
+                        </p>
+                      </div>
+                    )}
 
                     <div className="flex flex-wrap justify-between items-center gap-2 text-gray-600 dark:text-gray-400 text-sm mt-4 border-t border-gray-200 dark:border-gray-700 pt-3">
                       <Likes postId={p.id} type="post" />
-                      <button onClick={() => setOpenCommentPost(openCommentPost === p.id ? null : p.id)} className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400">
-                        <MessageCircle size={18} /><span>{commentCounts[p.id] || 0} Bình luận</span>
+                      <button
+                        onClick={() =>
+                          setOpenCommentPost(
+                            openCommentPost === p.id ? null : p.id
+                          )
+                        }
+                        className="flex items-center gap-1 hover:text-blue-500 dark:hover:text-blue-400"
+                      >
+                        <MessageCircle size={18} />
+                        <span>{commentCounts[p.id] || 0} Bình luận</span>
                       </button>
-                      <button onClick={() => handleShare(p)} className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400">
-                        <Share2 size={18} /><span>{shareCounts[p.id] || 0} Chia sẻ</span>
+                      <button
+                        onClick={() => handleShare(p)}
+                        className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400"
+                      >
+                        <Share2 size={18} />
+                        <span>{shareCounts[p.id] || 0} Chia sẻ</span>
                       </button>
                     </div>
                     {openCommentPost === p.id && (
                       <div className="mt-4 border-t pt-3">
-                        <CommentForm postId={p.id} onCommentAdded={() => handleCommentAdded(p.id)} />
+                        <CommentForm
+                          postId={p.id}
+                          onCommentAdded={() => handleCommentAdded(p.id)}
+                        />
                       </div>
                     )}
                   </li>
