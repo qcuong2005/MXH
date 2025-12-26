@@ -21,11 +21,12 @@ import { FollowsModule } from './follows/follows.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SaveModule } from './save/save.module';
 import { ReportModule } from './report/report.module';
+import { ShareModule } from './share/share.module';
 
 
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule, GroupCallModule, FollowsModule, NotificationsModule, SaveModule, ReportModule,],
+  imports: [ConfigModule, TypeOrmModule.forRoot(AppDataSource.options), UserModule, AuthModule, PostModule, CommentsModule, LikesModule, MessagesModule, ConversationsModule, CallModule, FriendsModule, GroupModule, GroupMemberModule, GroupMessagesModule, GroupCallModule, FollowsModule, NotificationsModule, SaveModule, ReportModule, ShareModule,],
   providers: [
     {
       provide: APP_GUARD,

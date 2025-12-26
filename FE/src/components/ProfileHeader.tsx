@@ -14,8 +14,7 @@ import {
   ChevronDown,
   Check,
   UserPlus,
-  EyeOff,
-  User, // <--- Icon User
+  User, 
 } from "lucide-react";
 import { formatDate, formatNumber } from "@/lib/utisls";
 import { fetchAPI } from "@/lib/api";
@@ -35,6 +34,9 @@ import {
 } from "@/services/follows";
 import GoldenTick from "./GoldenTick";
 import { deletePost, updatePost } from "@/services/post";
+
+// --- 1. Import Service Share Mới ---
+import { sharePostApi } from "@/services/share";
 
 interface ProfileHeaderProps {
   userId?: number | null;
@@ -72,7 +74,10 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
   const [loading, setLoading] = useState(true);
   const [newAvatar, setNewAvatar] = useState<string | null>(null);
   const [commentCounts, setCommentCounts] = useState<Record<number, number>>({});
+  
+  // State Share Counts
   const [shareCounts, setShareCounts] = useState<Record<number, number>>({});
+  
   const [openCommentPost, setOpenCommentPost] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,39 +91,25 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
   // --- HÀM DỊCH GIỚI TÍNH SANG TIẾNG VIỆT ---
   const translateGender = (gender: string) => {
     if (!gender) return null;
-    const g = gender.toLowerCase().trim(); // Chuyển về chữ thường và xóa khoảng trắng thừa
-    
-    // Các trường hợp là Nam
+    const g = gender.toLowerCase().trim();
     if (["male", "boy", "boys", "man", "men", "nam"].includes(g)) return "Nam";
-    
-    // Các trường hợp là Nữ
     if (["female", "girl", "girls", "woman", "women", "nu", "nữ"].includes(g)) return "Nữ";
-    
-    // Còn lại là Khác
     return "Khác";
   };
 
   const getVisibilityIcon = (visibility: string) => {
     switch (visibility) {
-      case "private":
-        return <Lock size={14} className="text-gray-500" />;
-      case "friends":
-        return <Users size={14} className="text-gray-500" />;
-      case "public":
-      default:
-        return <Globe size={14} className="text-gray-500" />;
+      case "private": return <Lock size={14} className="text-gray-500" />;
+      case "friends": return <Users size={14} className="text-gray-500" />;
+      case "public": default: return <Globe size={14} className="text-gray-500" />;
     }
   };
 
   const getVisibilityText = (visibility: string) => {
     switch (visibility) {
-      case "private":
-        return "Chỉ mình tôi";
-      case "friends":
-        return "Bạn bè";
-      case "public":
-      default:
-        return "Công khai";
+      case "private": return "Chỉ mình tôi";
+      case "friends": return "Bạn bè";
+      case "public": default: return "Công khai";
     }
   };
 
@@ -141,12 +132,10 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
         } catch (error) {
           console.error("Lỗi lấy số liệu follow:", error);
         }
+        
         // --- CHECK FOLLOW STATUS ---
         const token = localStorage.getItem("token");
         const myId = Number(localStorage.getItem("userId"));
-
-        // Biến tạm để lưu trạng thái follow phục vụ logic hiển thị bài viết ngay lập tức
-        let isFollowingTemp = false;
 
         if (token && myId !== effectiveUserId) {
           try {
@@ -163,7 +152,6 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
               return Number(targetId) === Number(effectiveUserId);
             });
             setIsFollowing(isFound);
-            isFollowingTemp = isFound; // Lưu lại để dùng bên dưới
           } catch (err) {
             console.error("Lỗi check logic follow:", err);
           }
@@ -180,7 +168,9 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
 
         await Promise.all(
           userPosts.map(async (p: Post) => {
-            shareData[p.id] = Math.floor(Math.random() * 10);
+            // Lấy số lượng share từ API Post (nếu có) hoặc mặc định 0
+            shareData[p.id] = (p as any).shares_count || 0; 
+            
             try {
               const list: AppComment[] = await getCommentsByPost(p.id);
               commentData[p.id] = countAllComments(list);
@@ -276,25 +266,53 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
     }
   };
   const handleEditAvatar = () => fileInputRef.current?.click();
+
+  // --- 2. HÀM CHIA SẺ ĐÃ CẬP NHẬT (Copy Link + Gọi API) ---
   const handleShare = async (post: Post) => {
+    // Tăng tạm thời UI
     setShareCounts((prev) => ({
       ...prev,
       [post.id]: (prev[post.id] || 0) + 1,
     }));
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: post.title,
-          text: post.content,
-          url: window.location.href,
-        });
-      } catch {
+
+    // Tạo link chia sẻ
+    const shareUrl = `${window.location.origin}/?postId=${post.id}`;
+    const shareData = {
+        title: post.title,
+        text: post.content,
+        url: shareUrl,
+    };
+
+    let shareSuccess = false;
+    try {
+        if (navigator.share) {
+            await navigator.share(shareData);
+            shareSuccess = true;
+        } else {
+            await navigator.clipboard.writeText(shareUrl);
+            alert(`Đã sao chép liên kết: ${shareUrl}`);
+            shareSuccess = true;
+        }
+    } catch {
         console.warn("Hủy chia sẻ");
-      }
-    } else {
-      alert("Trình duyệt không hỗ trợ chia sẻ");
+    }
+
+    // Gọi API lưu log nếu share thành công
+    const token = localStorage.getItem("token");
+    if (shareSuccess && token) {
+        try {
+            const response = await sharePostApi(token, post.id);
+            // Cập nhật lại số lượng chính xác từ Server
+            setShareCounts((prev) => ({ 
+                ...prev, 
+                [post.id]: response.newShareCount 
+            }));
+        } catch (error) {
+            console.error("Lỗi lưu log share:", error);
+        }
     }
   };
+
   const handleCommentAdded = (postId: number) => {
     setCommentCounts((prev) => ({
       ...prev,
@@ -667,7 +685,7 @@ export default function ProfileHeader({ userId }: ProfileHeaderProps) {
                       </button>
                       <button
                         onClick={() => handleShare(p)}
-                        className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400"
+                        className="flex items-center gap-1 hover:text-green-500 dark:hover:text-green-400 active:scale-95 transition-transform"
                       >
                         <Share2 size={18} />
                         <span>{shareCounts[p.id] || 0} Chia sẻ</span>

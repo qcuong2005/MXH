@@ -60,9 +60,12 @@ export default function GroupInfoModal({
       const fetchSuggestions = async () => {
         setLoadingList(true);
         try {
+          // Lấy danh sách bạn bè thay vì danh sách rỗng
           const rawData = await getFriendsApi(currentUser.token);
+          
           const currentMemberIds = new Set(members.map(m => m.userId));
           
+          // Lọc theo search term ngay tại đây
           const filteredData = rawData.filter((u: any) => {
              const name = u.fullName || u.name || u.username || "";
              return name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -85,6 +88,7 @@ export default function GroupInfoModal({
         }
       };
 
+      // Debounce search
       const timeoutId = setTimeout(() => {
         fetchSuggestions();
       }, 300);
@@ -97,8 +101,7 @@ export default function GroupInfoModal({
       const data = await getGroupMembersApi(currentUser.token, selectedChat.id);
       const mappedMembers: MemberDisplay[] = data.map((m: any) => {
         const userId = m.user?.id || m.user_id;
-        // Fix: Nếu là chính mình, ưu tiên lấy avatar từ currentUser (thường mới nhất/đầy đủ nhất)
-        // Nếu không, lấy từ m.user.avatar (API trả về)
+        // Fix: Nếu là chính mình, ưu tiên lấy avatar từ currentUser
         const avatar = userId === currentUser.id ? (currentUser.avatar || m.user?.avatar) : m.user?.avatar;
 
         return {
@@ -269,6 +272,7 @@ export default function GroupInfoModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-0 bg-white dark:bg-gray-800 custom-scrollbar flex flex-col">
+          {/* TAB THÀNH VIÊN */}
           {activeTab === "members" && (
             <div className="flex flex-col h-full">
                 <div className="p-2 flex-1">
@@ -278,15 +282,12 @@ export default function GroupInfoModal({
                     members.map((member) => (
                     <div key={member.userId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors group">
                         <div className="flex items-center gap-3">
-                        
-                        {/* --- AVATAR ĐÃ ĐƯỢC CHỈNH SỬA: Width/Height 40 và ClassName w-10 h-10 --- */}
                         <Image
                             src={getAvatarSrc(member.avatar)}
                             alt={member.name}
                             width={40} height={40}
                             className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-600"
                         />
-                        
                         <div>
                             <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1">
                             {member.name}
@@ -337,9 +338,12 @@ export default function GroupInfoModal({
                 )}
             </div>
           )}
+
+          {/* TAB THÊM NGƯỜI MỚI */}
           {activeTab === "add" && (
-             <div className="flex flex-col h-full">
-              <div className="p-4 bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col h-full">
+              {/* --- PHẦN TÌM KIẾM ĐÃ ĐƯỢC COMMENT (ẨN) --- */}
+              {/* <div className="p-4 bg-white dark:bg-gray-800 sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input
@@ -355,54 +359,97 @@ export default function GroupInfoModal({
                     <AlertCircle size={12}/> Chế độ kiểm duyệt đang bật: Admin sẽ duyệt yêu cầu.
                   </p>
                 )}
-              </div>
-              <div className="flex-1 p-2 overflow-y-auto">
+              </div> */}
+
+              <div className="flex-1 overflow-y-auto px-4 pt-2">
                 <p className="px-2 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                   {searchTerm ? "Kết quả tìm kiếm" : "Bạn bè của bạn"}
                 </p>
                 {loadingList ? (
-                    <div className="flex justify-center py-8 text-gray-400"><Loader2 className="animate-spin"/></div>
-                ) : suggestedUsers.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-center">
-                      <Users size={30} className="text-gray-300 dark:text-gray-600 mb-2"/>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        {searchTerm ? "Không tìm thấy người dùng nào." : "Bạn chưa có bạn bè nào."}
-                      </p>
-                    </div>
+                  <div className="flex justify-center py-12 text-gray-400">
+                    <Loader2 className="animate-spin" size={32} />
+                  </div>
                 ) : (
-                  suggestedUsers.map((user) => (
-                    <div key={user.userId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
-                      <div className="flex items-center gap-3">
-                          <Image
-                            src={getAvatarSrc(user.avatar)}
-                            alt={user.name}
-                            width={40} height={40}
-                            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-600"
-                          />
-                          <div>
-                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{user.name}</p>
-                            {user.username && <p className="text-xs text-gray-500">@{user.username}</p>}
+                  <>
+                    {(() => {
+                      const usersToShow = searchTerm
+                        ? suggestedUsers
+                        : suggestedUsers.filter(u => !u.isInGroup);
+
+                      const hasAnyFriends = suggestedUsers.length > 0;
+
+                      if (usersToShow.length === 0) {
+                        return (
+                          <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                            <Users size={64} className="text-gray-300 dark:text-gray-600 mb-6" />
+                            <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
+                              {searchTerm
+                                ? "Không tìm thấy ai phù hợp"
+                                : hasAnyFriends
+                                ? "Tất cả bạn bè đã trong nhóm!"
+                                : "Bạn chưa có bạn bè nào"}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                              {searchTerm
+                                ? "Thử tìm kiếm tên khác"
+                                : "Mời bạn bè để thêm vào nhóm nhé!"}
+                            </p>
                           </div>
-                      </div>
-                      {user.isInGroup ? (
-                        <span className="text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400 px-3 py-1.5 rounded-lg flex items-center gap-1">
-                          <Check size={12}/> Đã tham gia
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleAddMember(user.userId)}
-                          disabled={processingId === user.userId}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg flex items-center gap-1 transition-all active:scale-95 disabled:opacity-70 disabled:active:scale-100 shadow-sm"
-                        >
-                          {processingId === user.userId ? (
-                             <Loader2 size={14} className="animate-spin"/>
-                          ) : (
-                             <><UserPlus size={14}/> Thêm</>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  ))
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-3">
+                          {usersToShow.map((user) => (
+                            <div
+                              key={user.userId}
+                              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-4">
+                                <Image
+                                  src={getAvatarSrc(user.avatar)}
+                                  alt={user.name}
+                                  width={48}
+                                  height={48}
+                                  className="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                                />
+                                <div>
+                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                    {user.name}
+                                  </p>
+                                  {user.username && (
+                                    <p className="text-sm text-gray-500">@{user.username}</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {user.isInGroup ? (
+                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm font-medium">
+                                  <Check size={18} />
+                                  Đã tham gia
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleAddMember(user.userId)}
+                                  disabled={processingId === user.userId}
+                                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium flex items-center gap-2 transition-all disabled:opacity-60"
+                                >
+                                  {processingId === user.userId ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                  ) : (
+                                    <>
+                                      <UserPlus size={16} />
+                                      Thêm
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </>
                 )}
               </div>
             </div>
