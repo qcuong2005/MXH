@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-// ... các import giữ nguyên ...
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -20,20 +19,23 @@ import { useSocket } from "@/components/SocketContext";
 
 export default function FriendsPage() {
   const router = useRouter();
+  const { socket } = useSocket();
+
+  // State quản lý dữ liệu và giao diện
   const [activeTab, setActiveTab] = useState("all");
   const [token, setToken] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const { socket } = useSocket();
   const [friends, setFriends] = useState<any[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [suggestedFriends, setSuggestedFriends] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ... (Giữ nguyên handleSearchChange, filteredFriends...) 
+  // Xử lý thay đổi ô tìm kiếm
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
+  // Lọc danh sách (Bạn bè, Lời mời, Gợi ý) dựa trên từ khóa tìm kiếm
   const filteredFriends = friends.filter((friend) =>
     friend.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -44,11 +46,11 @@ export default function FriendsPage() {
     suggestion.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // ... (Giữ nguyên fetchAllFriendsData)
+  // Tải toàn bộ dữ liệu bạn bè, lời mời và tính toán danh sách gợi ý
   const fetchAllFriendsData = useCallback(async (authToken: string, currentId?: number) => {
-      // ... Code cũ giữ nguyên ...
       if (!authToken) return;
       try {
+        // Gọi song song các API để tối ưu tốc độ
         const [friendsRes, pendingRes, sentRes, usersRes] = await Promise.all([
           getFriendsApi(authToken),
           getPendingFriendRequestsApi(authToken),
@@ -64,7 +66,7 @@ export default function FriendsPage() {
         setFriends(friendsList);
         setFriendRequests(requestList);
 
-        // Logic gợi ý bạn bè
+        // Logic tạo danh sách gợi ý: Loại bỏ bản thân, bạn bè hiện tại và các lời mời đã gửi/nhận
         const excludedIds = new Set<number>();
         if (currentId) excludedIds.add(currentId);
         friendsList.forEach((f: any) => excludedIds.add(f.id));
@@ -72,6 +74,7 @@ export default function FriendsPage() {
         sentList.forEach((req: any) => excludedIds.add(req.id));
 
         const filteredUsers = rawUsers.filter((u: any) => !excludedIds.has(u.id));
+        
         const mappedSuggestions = filteredUsers.map((u: any) => ({
           id: u.id,
           name: u.fullName ?? u.name ?? u.username ?? "Người dùng",
@@ -86,33 +89,31 @@ export default function FriendsPage() {
       }
   }, []);
 
+  // Xử lý chấp nhận lời mời kết bạn qua Socket
   const handleAcceptRequest = async (requesterId: number) => {
     if (!token || !socket) return;
     socket.emit("friends:accept", { requesterId: requesterId });
     setFriendRequests((prev) => prev.filter((req: any) => req.id !== requesterId));
   };
 
+  // Xử lý từ chối lời mời kết bạn qua Socket
   const handleRejectRequest = async (requesterId: number) => {
     if (!token || !socket) return;
     socket.emit("friends:reject", { requesterId: requesterId });
     setFriendRequests((prev) => prev.filter((req: any) => req.id !== requesterId));
   };
 
-  // --- HÀM MỚI: Xử lý khi AllFriends xóa thành công ---
+  // Cập nhật UI ngay lập tức khi hủy kết bạn thành công (Optimistic Update)
   const handleLocalUnfriend = (removedFriendId: number) => {
-    // 1. Cập nhật ngay lập tức state friends ở đây
-    // Điều này sẽ làm giảm số đếm ở Tab "Tất cả bạn bè" ngay lập tức
     setFriends((prev) => prev.filter((f) => f.id !== removedFriendId));
     
-    // 2. (Tùy chọn) Gọi lại fetchAllFriendsData để cập nhật lại danh sách Gợi ý (Suggested)
-    // vì người vừa xóa nên hiện lại ở mục gợi ý.
+    // Tải lại dữ liệu để cập nhật danh sách gợi ý (người vừa xóa sẽ xuất hiện lại ở gợi ý)
     if (token && currentUserId) {
-        // setTimeout nhỏ để backend kịp update DB trước khi fetch lại
         setTimeout(() => fetchAllFriendsData(token, currentUserId), 500);
     }
   };
 
-  // ... (Giữ nguyên các useEffect auth và socket)
+  // Kiểm tra xác thực người dùng khi component mount
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUserId = localStorage.getItem("userId");
@@ -122,25 +123,23 @@ export default function FriendsPage() {
     if (!isNaN(uid)) setCurrentUserId(uid); else router.push("/login");
   }, [router]);
 
+  // Lắng nghe các sự kiện Realtime từ Socket (nhận lời mời, đồng ý, xóa bạn)
   useEffect(() => {
     if (!socket || !token || !currentUserId) return;
     fetchAllFriendsData(token, currentUserId);
 
-    const handleRequestReceived = () => fetchAllFriendsData(token, currentUserId);
-    const handleRequestAccepted = () => fetchAllFriendsData(token, currentUserId);
-    const handleRequestRejected = () => fetchAllFriendsData(token, currentUserId);
-    const handleFriendRemoved = () => fetchAllFriendsData(token, currentUserId); // Cái này xử lý khi NGƯỜI KIA xóa mình
+    const refreshData = () => fetchAllFriendsData(token, currentUserId);
 
-    socket.on("friends:request:received", handleRequestReceived);
-    socket.on("friends:accepted", handleRequestAccepted);
-    socket.on("friends:rejected", handleRequestRejected);
-    socket.on("friends:removed", handleFriendRemoved);
+    socket.on("friends:request:received", refreshData);
+    socket.on("friends:accepted", refreshData);
+    socket.on("friends:rejected", refreshData);
+    socket.on("friends:removed", refreshData);
 
     return () => {
-      socket.off("friends:request:received", handleRequestReceived);
-      socket.off("friends:accepted", handleRequestAccepted);
-      socket.off("friends:rejected", handleRequestRejected);
-      socket.off("friends:removed", handleFriendRemoved);
+      socket.off("friends:request:received", refreshData);
+      socket.off("friends:accepted", refreshData);
+      socket.off("friends:rejected", refreshData);
+      socket.off("friends:removed", refreshData);
     };
   }, [socket, token, currentUserId, fetchAllFriendsData]);
 
@@ -151,11 +150,14 @@ export default function FriendsPage() {
         <Header />
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto p-4">
+            
+            {/* Tiêu đề trang */}
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Bạn bè</h1>
               <p className="text-gray-600 dark:text-gray-400">Kết nối với những người bạn biết</p>
             </div>
             
+            {/* Thanh tìm kiếm */}
             <div className="mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -169,11 +171,11 @@ export default function FriendsPage() {
               </div>
             </div>
             
+            {/* Tabs chuyển đổi: Tất cả, Lời mời, Gợi ý */}
             <div className="mb-6">
               <div className="border-b border-gray-200 dark:border-gray-800">
                 <nav className="-mb-px flex space-x-8">
                   {[
-                    // Số count này sẽ tự động giảm khi state 'friends' thay đổi
                     { id: "all", label: "Tất cả bạn bè", count: filteredFriends.length }, 
                     { id: "requests", label: "Lời mời kết bạn", count: filteredRequests.length },
                     { id: "suggestions", label: "Gợi ý", count: filteredSuggestions.length },
@@ -194,7 +196,7 @@ export default function FriendsPage() {
               </div>
             </div>
             
-            {/* TRUYỀN HÀM XỬ LÝ XUỐNG DƯỚI */}
+            {/* Nội dung Tab: Tất cả bạn bè */}
             {activeTab === "all" && (
                 <AllFriends 
                     friends={filteredFriends} 
@@ -202,6 +204,7 @@ export default function FriendsPage() {
                 />
             )}
 
+            {/* Nội dung Tab: Lời mời kết bạn */}
             {activeTab === "requests" && (
               <FriendRequests
                 friendRequests={filteredRequests}
@@ -210,6 +213,7 @@ export default function FriendsPage() {
               />
             )}
             
+            {/* Nội dung Tab: Gợi ý kết bạn */}
             {activeTab === "suggestions" && socket && token && (
               <SuggestedFriends
                 suggestedFriends={filteredSuggestions}
@@ -219,6 +223,7 @@ export default function FriendsPage() {
             {activeTab === "suggestions" && !socket && (
               <p className="text-gray-500 text-center">Đang kết nối...</p>
             )}
+
           </div>
         </main>
       </div>

@@ -2,9 +2,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Bell } from "lucide-react";
+import { useRouter } from "next/navigation"; // 👈 1. Thêm import router
 
 import Notifications from "./Notifications";
-import { getNotificationsApi } from "@/services/notification"; // Sửa đường dẫn nếu cần
+import { getNotificationsApi } from "@/services/notification";
 import { Notification } from "@/types";
 import { useSocket } from "../SocketContext";
 
@@ -17,6 +18,7 @@ export default function NotificationDropdown({ currentUser }: Props) {
   const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   
+  const router = useRouter(); // 👈 2. Khai báo router
   const { socket } = useSocket();
 
   // 1. Lấy số lượng chưa đọc ban đầu
@@ -38,10 +40,8 @@ export default function NotificationDropdown({ currentUser }: Props) {
     if (!socket) return;
 
     const handleNewNotification = (newNotif: Notification) => {
-      // Logic kiểm tra nếu cần (ví dụ: không thông báo chính mình)
-      if (newNotif.sender_id !== currentUser.id) {
+      if (Number(newNotif.sender_id) !== Number(currentUser.id)) {
         setUnreadCount((prev) => prev + 1);
-        // new Audio("/sounds/ping.mp3").play(); // Bật nếu muốn có âm thanh
       }
     };
 
@@ -64,10 +64,15 @@ export default function NotificationDropdown({ currentUser }: Props) {
 
   const handleToggle = () => {
     if (!isOpen) {
-      // Khi mở ra thì reset số đếm về 0 (như logic bạn yêu cầu)
-      setUnreadCount(0);
+      setUnreadCount(0); // Reset số đếm khi mở
     }
     setIsOpen(!isOpen);
+  };
+
+  // 👇 3. Hàm xử lý khi bấm vào bài viết từ thông báo
+  const handleOpenPost = (postId: number) => {
+    setIsOpen(false); // Đóng dropdown trước
+    router.push(`/post/${postId}`); // Chuyển sang trang chi tiết bài viết
   };
 
   return (
@@ -89,7 +94,12 @@ export default function NotificationDropdown({ currentUser }: Props) {
       {/* Popup Danh sách thông báo */}
       {isOpen && (
         <div className="absolute right-0 mt-3 w-[380px] sm:w-[420px] max-w-[90vw] z-50 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border border-gray-100 dark:border-gray-700 animate-in fade-in slide-in-from-top-2 overflow-hidden">
-          <Notifications currentUser={currentUser} />
+          {/* 👇 4. Truyền đủ props vào Notifications */}
+          <Notifications 
+            currentUser={currentUser} 
+            onOpenPost={handleOpenPost}           // Fix lỗi thiếu prop onOpenPost
+            onCloseDropdown={() => setIsOpen(false)} // Truyền thêm hàm đóng dropdown
+          />
         </div>
       )}
     </div>

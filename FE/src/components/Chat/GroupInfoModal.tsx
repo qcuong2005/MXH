@@ -1,15 +1,14 @@
-
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { X, UserPlus, Trash2, Users, Shield, Search, Check, Loader2, AlertCircle, AlertTriangle, Camera } from "lucide-react"; // 2. Thêm icon Camera
+import { X, UserPlus, Trash2, Users, Shield, Search, Check, Loader2, AlertCircle, AlertTriangle, Camera } from "lucide-react";
 import Image from "next/image";
 import anhmacdinh from "../../../image/anhmacdinh.jpg"; 
 import { 
   getGroupMembersApi, 
   addGroupMemberApi, 
-  removeGroupMemberApi,
-  dissolveGroupApi,
-  updateGroupAvatarApi // 3. Import API update avatar
+  removeGroupMemberApi, 
+  dissolveGroupApi, 
+  updateGroupAvatarApi 
 } from "@/services/group";
 import { getFriendsApi } from "@/services/friend";
 
@@ -38,7 +37,6 @@ export default function GroupInfoModal({
   currentUser,
   onGroupDeleted 
 }: GroupInfoModalProps) {
-  // --- STATE CŨ ---
   const [activeTab, setActiveTab] = useState<"members" | "add">("members");
   const [members, setMembers] = useState<MemberDisplay[]>([]);
   const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
@@ -48,11 +46,9 @@ export default function GroupInfoModal({
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [isDissolving, setIsDissolving] = useState(false);
 
-  // --- 4. STATE MỚI CHO UPLOAD AVATAR ---
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- EFFECT ---
   useEffect(() => {
     if (isOpen && selectedChat?.id && selectedChat.isGroup && currentUser?.token) {
       fetchGroupMembers();
@@ -61,18 +57,18 @@ export default function GroupInfoModal({
 
   useEffect(() => {
     if (activeTab === "add" && isOpen) {
-      // ... (Logic fetch suggestions giữ nguyên)
       const fetchSuggestions = async () => {
         setLoadingList(true);
         try {
-          let rawData: any[] = [];
-          if (!searchTerm.trim()) {
-            rawData = await getFriendsApi(currentUser.token);
-          } else {
-            rawData = []; 
-          }
+          const rawData = await getFriendsApi(currentUser.token);
           const currentMemberIds = new Set(members.map(m => m.userId));
-          const mappedSuggestions: MemberDisplay[] = rawData.map((u: any) => ({
+          
+          const filteredData = rawData.filter((u: any) => {
+             const name = u.fullName || u.name || u.username || "";
+             return name.toLowerCase().includes(searchTerm.toLowerCase());
+          });
+
+          const mappedSuggestions: MemberDisplay[] = filteredData.map((u: any) => ({
             id: 0, 
             userId: u.id, 
             name: u.fullName || u.name || u.username || `User ${u.id}`, 
@@ -88,25 +84,32 @@ export default function GroupInfoModal({
           setLoadingList(false);
         }
       };
+
       const timeoutId = setTimeout(() => {
         fetchSuggestions();
-      }, 500);
+      }, 300);
       return () => clearTimeout(timeoutId);
     }
   }, [activeTab, searchTerm, isOpen, members, currentUser.token]);
 
-  // --- CÁC HÀM LOGIC CŨ ---
   const fetchGroupMembers = async () => {
     try {
       const data = await getGroupMembersApi(currentUser.token, selectedChat.id);
-      const mappedMembers: MemberDisplay[] = data.map((m: any) => ({
-        id: m.id, 
-        userId: m.user?.id || m.user_id,
-        name: m.user?.fullName || m.user?.username || `User ${m.user_id}`,
-        avatar: m.user?.avatar,
-        role: m.role,
-        isInGroup: true
-      }));
+      const mappedMembers: MemberDisplay[] = data.map((m: any) => {
+        const userId = m.user?.id || m.user_id;
+        // Fix: Nếu là chính mình, ưu tiên lấy avatar từ currentUser (thường mới nhất/đầy đủ nhất)
+        // Nếu không, lấy từ m.user.avatar (API trả về)
+        const avatar = userId === currentUser.id ? (currentUser.avatar || m.user?.avatar) : m.user?.avatar;
+
+        return {
+            id: m.id, 
+            userId: userId,
+            name: m.user?.fullName || m.user?.username || `User ${m.user_id}`,
+            avatar: avatar,
+            role: m.role,
+            isInGroup: true
+        };
+      });
       setMembers(mappedMembers);
       const myMemberInfo = mappedMembers.find(m => m.userId === currentUser.id);
       setIsCurrentUserAdmin(myMemberInfo?.role === 'admin');
@@ -146,7 +149,7 @@ export default function GroupInfoModal({
   };
 
   const handleDissolveGroup = async () => {
-    const confirmMsg = `CẢNH BÁO: ...`; 
+    const confirmMsg = `CẢNH BÁO: Hành động này không thể hoàn tác. Bạn có chắc chắn muốn giải tán nhóm này không?`; 
     if (!window.confirm(confirmMsg)) return;
     setIsDissolving(true);
     try {
@@ -162,7 +165,6 @@ export default function GroupInfoModal({
     }
   };
 
-  // --- 5. HÀM XỬ LÝ UPLOAD AVATAR ---
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -174,15 +176,8 @@ export default function GroupInfoModal({
 
     setIsUploading(true);
     try {
-        // Gọi API
         await updateGroupAvatarApi(currentUser.token, selectedChat.id, file);
-        
         alert("Cập nhật ảnh nhóm thành công! (Vui lòng tải lại trang để thấy thay đổi)");
-        
-        // Lưu ý: Để UI cập nhật ngay lập tức (realtime), 
-        // bạn cần socket emit event 'groupUpdated' từ backend 
-        // và component cha lắng nghe socket đó để update state.
-        
     } catch (error: any) {
         console.error("Lỗi upload avatar:", error);
         alert(error.response?.data?.message || "Lỗi khi cập nhật ảnh nhóm.");
@@ -219,10 +214,9 @@ export default function GroupInfoModal({
           </button>
         </div>
 
-        {/* --- 6. PHẦN HIỂN THỊ VÀ ĐỔI AVATAR --- */}
+        {/* Info & Avatar */}
         <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
              <div className="relative group">
-                {/* Ảnh đại diện nhóm */}
                 <Image
                   src={selectedChat.avatar || anhmacdinh.src} 
                   alt="Group Avatar"
@@ -231,7 +225,6 @@ export default function GroupInfoModal({
                   className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600 shadow-sm"
                 />
                 
-                {/* Nút Camera - Hiển thị cho TẤT CẢ mọi người (không check isCreator/isAdmin) */}
                 <button 
                     onClick={triggerFileInput}
                     disabled={isUploading}
@@ -241,7 +234,6 @@ export default function GroupInfoModal({
                     {isUploading ? <Loader2 size={14} className="animate-spin"/> : <Camera size={14} className="text-gray-600 dark:text-gray-300"/>}
                 </button>
                 
-                {/* Input file ẩn */}
                 <input 
                     type="file" 
                     ref={fileInputRef} 
@@ -286,12 +278,15 @@ export default function GroupInfoModal({
                     members.map((member) => (
                     <div key={member.userId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors group">
                         <div className="flex items-center gap-3">
+                        
+                        {/* --- AVATAR ĐÃ ĐƯỢC CHỈNH SỬA: Width/Height 40 và ClassName w-10 h-10 --- */}
                         <Image
                             src={getAvatarSrc(member.avatar)}
                             alt={member.name}
-                            width={44} height={44}
-                            className="w-11 h-11 rounded-full object-cover border border-gray-100 dark:border-gray-600"
+                            width={40} height={40}
+                            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-600"
                         />
+                        
                         <div>
                             <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1">
                             {member.name}
@@ -319,7 +314,6 @@ export default function GroupInfoModal({
                     ))
                 )}
                 </div>
-                {/* UI Giải tán nhóm (chỉ dành cho Creator) */}
                 {isCreator && (
                     <div className="p-4 border-t border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 mt-auto">
                         <div className="flex items-start gap-3 mb-3">
@@ -367,14 +361,14 @@ export default function GroupInfoModal({
                   {searchTerm ? "Kết quả tìm kiếm" : "Bạn bè của bạn"}
                 </p>
                 {loadingList ? (
-                   <div className="flex justify-center py-8 text-gray-400"><Loader2 className="animate-spin"/></div>
+                    <div className="flex justify-center py-8 text-gray-400"><Loader2 className="animate-spin"/></div>
                 ) : suggestedUsers.length === 0 ? (
-                   <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
                       <Users size={30} className="text-gray-300 dark:text-gray-600 mb-2"/>
                       <p className="text-gray-500 dark:text-gray-400 text-sm">
                         {searchTerm ? "Không tìm thấy người dùng nào." : "Bạn chưa có bạn bè nào."}
                       </p>
-                   </div>
+                    </div>
                 ) : (
                   suggestedUsers.map((user) => (
                     <div key={user.userId} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">

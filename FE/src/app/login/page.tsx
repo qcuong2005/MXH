@@ -167,12 +167,12 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* Quên mật khẩu */}
+            {/* Quên mật khẩu
             <div className="flex justify-end">
               <a href="#" className="text-sm lg:text-xs text-indigo-600 font-semibold hover:underline">
                 Quên mật khẩu?
               </a>
-            </div>
+            </div> */}
 
             {/* Nút Đăng nhập */}
             <button

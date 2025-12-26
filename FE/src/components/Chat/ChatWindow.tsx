@@ -251,13 +251,14 @@ export default function ChatWindow({
               className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-md cursor-pointer"
               onClick={() => router.push(`/profile?userId=${selectedChat.id}`)}
             />
-            <div
+            {/* --- ĐÃ COMMENT (ẨN) ICON TRẠNG THÁI (DẤU CHẤM) --- */}
+            {/* <div
               className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
                 selectedChat.status === "online"
                   ? "bg-green-500"
                   : "bg-gray-400"
               }`}
-            />
+            /> */}
           </div>
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
@@ -266,10 +267,14 @@ export default function ChatWindow({
             <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center min-h-[1rem]">
               {isTyping ? (
                 <TypingIndicator />
-              ) : selectedChat.status === "online" ? (
-                "Online"
               ) : (
-                "Offline"
+                // --- ĐÃ COMMENT (ẨN) CHỮ ONLINE/OFFLINE ---
+                // selectedChat.status === "online" ? (
+                //   "Online"
+                // ) : (
+                //   "Offline"
+                // )
+                "" 
               )}
             </p>
           </div>
@@ -277,21 +282,24 @@ export default function ChatWindow({
 
         {/* PHẦN NÚT PHẢI HEADER - CONDITIONAL */}
         <div className="flex items-center space-x-1.5">
-          {/* Chỉ hiện 2 nút gọi khi là chat 1-1 */}
+          {/* Chỉ hiện nút gọi khi là chat 1-1 */}
           {!isGroup && (
             <>
+              {/* --- ĐÃ MỞ LẠI NÚT GỌI THƯỜNG (VOICE) --- */}
               <button
                 onClick={() => handleStartCall("voice")}
                 className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
               >
                 <Phone className="w-4 h-4 text-gray-600 dark:text-gray-300" />
               </button>
-              <button
+
+              {/* --- VẪN ẨN NÚT GỌI VIDEO --- */}
+              {/* <button
                 onClick={() => handleStartCall("video")}
                 className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
               >
                 <Video className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-              </button>
+              </button> */}
             </>
           )}
 

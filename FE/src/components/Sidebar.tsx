@@ -19,19 +19,17 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import anhmacdinh from "../../image/anhmacdinh.jpg";
 
-
 const navigation = [
-  { name: "Home", icon: Home, href: "/", },
-  { name: "Profile", icon: UserCircle, href: "/profile",  },
+  { name: "Home", icon: Home, href: "/" },
+  { name: "Profile", icon: UserCircle, href: "/profile" },
   {
     name: "Messages",
     icon: MessageSquare,
     href: "/messages",
-  
   },
-  { name: "Friends", icon: Users, href: "/friends", },
-  { name: "Saved", icon: Bookmark, href: "/saved",},
-  { name: "Settings", icon: Settings, href: "/settings", },
+  { name: "Friends", icon: Users, href: "/friends" },
+  { name: "Saved", icon: Bookmark, href: "/saved" },
+  { name: "Settings", icon: Settings, href: "/settings" },
 ];
 
 export default function Sidebar() {
@@ -64,25 +62,26 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ==================== DESKTOP SIDEBAR (giữ nguyên) ==================== */}
+      {/* ==================== DESKTOP SIDEBAR ==================== */}
       <aside className="hidden lg:flex w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col h-screen">
         <div className="p-6 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center space-x-3">
-            <a href="/profile">
+            <a href="/profile" className="block relative">
+              {/* Cập nhật Avatar Desktop */}
               <Image
                 src={user?.avatar || anhmacdinh.src}
                 alt="avatar"
                 width={48}
                 height={48}
-                className="w-12 h-12 rounded-full object-cover border"
+                className="w-12 h-12 min-w-[3rem] min-h-[3rem] rounded-full object-cover border shrink-0 bg-gray-100"
               />
             </a>
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+            <div className="flex-1 min-w-0"> {/* min-w-0 giúp text truncate hoạt động */}
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {user?.fullName || "Ẩn danh"}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                @{user?.email || "no-email"}
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                {user?.email || "no-email"}
               </p>
             </div>
           </div>
@@ -136,18 +135,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* ==================== MOBILE: Chỉ dùng Drawer Sidebar (đã bỏ bottom nav) ==================== */}
-
-      {/* ==================== MOBILE TOP BAR (chỉ có nút Menu) ==================== */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 ...">...</div>
-
-      {/* Đẩy nội dung xuống để không bị top bar che */}
-      <div className="lg:hidden h-16" />
-      {/* XÓA HẾT ĐOẠN NÀY */}
-
-      {/* THAY BẰNG ĐOẠN NÀY - SIÊU SẠCH & ĐÚNG CHUẨN */}
-
-      {/* Chỉ để lại Mobile Drawer + Backdrop */}
+      {/* ==================== MOBILE SIDEBAR ==================== */}
       {isMobileSidebarOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-60 z-40 lg:hidden backdrop-blur-sm"
@@ -155,28 +143,27 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Mobile Sidebar Drawer - z-index cao nhất */}
       <aside
         className={clsx(
           "fixed inset-y-0 left-0 w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-[60] transition-transform duration-300 ease-in-out lg:hidden shadow-2xl",
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between safe-area-top">
           <div className="flex items-center space-x-3">
+            {/* Cập nhật Avatar Mobile */}
             <Image
               src={user?.avatar || anhmacdinh.src}
               alt="avatar"
               width={40}
               height={40}
-              className="w-10 h-10 rounded-full object-cover border"
+              className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] rounded-full object-cover border shrink-0 bg-gray-100"
             />
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
                 {user?.fullName || "Ẩn danh"}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 @{user?.email || "no-email"}
               </p>
             </div>
@@ -186,7 +173,6 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Navigation - CĂN SÁT PHÍA TRÊN (chuẩn app lớn 2025) */}
         <nav className="p-4 pt-2 overflow-y-auto">
           <ul className="space-y-1">
             {navigation.map((item) => {
@@ -221,7 +207,6 @@ export default function Sidebar() {
           </ul>
         </nav>
 
-        {/* Logout */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
           <button
             onClick={() => {
@@ -237,7 +222,6 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
-
     </>
   );
 }
