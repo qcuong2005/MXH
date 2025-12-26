@@ -378,7 +378,7 @@ export default function Header() {
             <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-black text-lg ml-0.5">V</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">VTC Media</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">TC Media</h1>
           </Link>
 
           <div className="flex-1 max-w-lg mx-8">

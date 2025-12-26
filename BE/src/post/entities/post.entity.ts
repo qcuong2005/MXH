@@ -56,6 +56,10 @@ export class Post {
     enum: ['public', 'friends', 'private'],
     default: 'public',
   })
+
+  @Column({ default: 0 })
+  shares_count: number; // Chỉ cần cột này để đếm
+  
   @Column({ type: 'varchar', length: 20, default: 'public' })
   visibility: string;
 
